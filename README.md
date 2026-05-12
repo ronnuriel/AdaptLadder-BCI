@@ -89,6 +89,7 @@ results/figures/t15_mean_shift_heatmap.png
 - A three-source sweep gives 28.81% PER for early, 22.67% for middle, and 34.43% for late source layers; each harms 40/41 sessions.
 - The first adaptation ladder run on the middle `t15.2023.11.26` source finds that target z-scoring and source moment matching do not recover the cross-day loss, suggesting mean/variance alignment alone is insufficient.
 - A small supervised diagonal-affine calibration script is available for the next ladder step: learn only per-channel scale and bias from the first K labeled trials, then evaluate PER on the remaining validation trials.
+- A CPU-feasible all-session affine run with 5 training epochs shows a modest but consistent recovery: diagonal affine improves weighted PER from 22.51% to 21.99% at K=5, 22.48% to 21.81% at K=10, and 21.51% to 20.21% at K=20.
 
 ## Decoder Experiments
 
@@ -165,6 +166,7 @@ python scripts/run_t15_affine_calibration_eval.py \
   --methods native-day none moment_match_to_source diagonal_affine \
   --epochs 40 \
   --learning-rate 0.01 \
+  --device cpu \
   --gpu-number -1 \
   --output-trials results/tables/t15_affine_calibration_trial_results_source_middle.csv \
   --output-summary results/tables/t15_affine_calibration_session_summary_source_middle.csv \
@@ -173,6 +175,9 @@ python scripts/run_t15_affine_calibration_eval.py \
   --output-weighted-figure results/figures/t15_affine_calibration_weighted_per_source_middle.png \
   --output-recovery-figure results/figures/t15_affine_calibration_recovery_source_middle.png
 ```
+
+The checked pilot used the same command with `--epochs 5` and `_epochs5`
+output suffixes.
 
 ## Paper draft
 

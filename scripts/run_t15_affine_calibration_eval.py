@@ -31,6 +31,18 @@ from src.decoder_eval import (
 from src.t15_utils import session_date
 
 
+def resolve_requested_device(device_name: str, gpu_number: int) -> torch.device:
+    if device_name == "cpu":
+        return torch.device("cpu")
+    if device_name == "mps":
+        raise ValueError("MPS is not supported for this script because PyTorch CTCLoss does not currently run on MPS.")
+    if device_name == "cuda":
+        return resolve_device(gpu_number if gpu_number >= 0 else 0)
+    if torch.cuda.is_available() and gpu_number >= 0:
+        return resolve_device(gpu_number)
+    return torch.device("cpu")
+
+
 METHOD_ORDER = ["native-day", "none", "moment_match_to_source", "diagonal_affine"]
 METHOD_LABELS = {
     "native-day": "Native-day",
@@ -441,6 +453,7 @@ def main() -> None:
     parser.add_argument("--l2-weight", type=float, default=1e-4)
     parser.add_argument("--grad-clip", type=float, default=5.0)
     parser.add_argument("--min-eval-trials", type=int, default=5)
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto")
     parser.add_argument("--gpu-number", type=int, default=-1)
     parser.add_argument("--output-trials", type=Path, default=Path("results/tables/t15_affine_calibration_trial_results_source_middle.csv"))
     parser.add_argument("--output-summary", type=Path, default=Path("results/tables/t15_affine_calibration_session_summary_source_middle.csv"))
@@ -464,7 +477,7 @@ def main() -> None:
     if "diagonal_affine" not in args.methods:
         raise ValueError("--methods must include diagonal_affine for this calibration experiment.")
 
-    device = resolve_device(args.gpu_number)
+    device = resolve_requested_device(args.device, args.gpu_number)
     model, model_args = load_official_gru_decoder(ROOT, args.model_path, device)
     _set_use_amp(model_args, enabled=(device.type == "cuda" and bool(model_args["use_amp"])))
     add_official_model_training_to_path(ROOT)

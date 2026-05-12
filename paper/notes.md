@@ -28,3 +28,11 @@ learn per-channel scale and bias through CTC loss while freezing the official
 GRU and source input layer. PER is then measured on the remaining trials. This
 keeps the intervention lightweight while testing whether minimal learned
 feature reweighting can recover what unsupervised moment correction could not.
+
+A CPU-feasible all-session pilot with 5 adapter-training epochs gives a positive
+but modest signal. For the middle `t15.2023.11.26` source, diagonal affine
+improves weighted PER from 22.51% to 21.99% at K=5, from 22.48% to 21.81% at
+K=10, and from 21.51% to 20.21% at K=20. Recovery of the native-day gap rises
+from 3.8% to 4.9% to 10.1%, while moment matching remains worse than no
+correction. Because this run used only 5 epochs, it should be treated as a
+preliminary full-session result rather than the final calibration setting.

@@ -1,0 +1,63 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{How Much Adaptation Is Enough?\\Lightweight Drift Correction for Brain-to-Text BCI}
+\author{AdaptLadder-BCI}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Brain-to-text BCI decoders are vulnerable to cross-session changes in neural feature
+distributions. This short paper studies lightweight input adaptation as a first-line
+response to session drift. We quantify drift across T15 copy-task sessions, test simple
+normalization and moment-matching corrections, and identify when stronger adaptation
+may be necessary.
+\end{abstract}
+
+\section{Introduction}
+Cross-session drift can degrade BCI decoder reliability and increase recalibration
+burden. Rather than immediately changing decoder weights, we ask how far simple
+input-space corrections can go.
+
+\section{Related Work}
+To be filled with brain-to-text BCI, neural decoder adaptation, test-time adaptation,
+and recalibration references.
+
+\section{Data}
+Primary analysis uses T15 copy-task neural features. The first sanity pass reports
+session counts, trial counts, trial lengths, feature dimensionality, and available
+labels/splits.
+
+\section{Methods}
+\subsection{Drift metrics}
+For each session we estimate feature-wise mean, standard deviation, and diagonal
+covariance. We report distance from the first session and from the previous session.
+
+\subsection{Adaptation ladder}
+We compare no adaptation, target-session z-scoring, and source-to-target moment
+matching. Decoder-based metrics are planned as the main performance endpoint.
+
+\section{Results}
+Initial results will include T15 dataset summary, drift-over-time, PCA session maps,
+and adaptation before/after metrics.
+
+\section{Discussion}
+The central question is whether lightweight correction is enough, and when the
+remaining error calls for stronger adaptation.
+
+\section{Limitations}
+Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC
+loss, decoder confidence, or related decoder-facing metrics are required for a stronger
+paper.
+
+\section{Conclusion}
+Adaptation ladders can provide a practical way to decide how much correction a
+brain-to-text BCI session needs before moving to heavier recalibration.
+
+\end{document}

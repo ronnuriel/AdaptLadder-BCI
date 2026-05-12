@@ -1,0 +1,9 @@
+torch
+numpy
+pandas
+h5py
+matplotlib
+omegaconf
+tqdm
+editdistance
+jupyter

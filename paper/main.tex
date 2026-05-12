@@ -70,13 +70,13 @@ layer and evaluate decoding only on the remaining trials from that target sessio
 We also compare this rule against a previous-session baseline that uses the
 immediately preceding input layer.
 
-\subsection{Optional T12 geometry feasibility}
-We prepare an optional T12 validation using the diagnostic blocks from the Dryad
+\subsection{T12 geometry-only feasibility}
+As a secondary feasibility check, we analyze diagnostic blocks from the Dryad
 release for the high-performance speech neuroprosthesis dataset. This analysis is
-geometry-only: it does not attempt to reproduce the T12 decoder. The goal is to
-test whether diagnostic block neural features show a similar across-day geometry
-structure, including whether previous-session recency is a strong source
-candidate and whether geometry occasionally selects older sessions.
+geometry-only: it does not attempt to reproduce the T12 decoder. We use
+diagnostic-block spike-power features to test whether a second participant/dataset
+shows similar longitudinal geometry, including temporal distance effects and
+non-recent source matches.
 
 \section{Results}
 \subsection{Native-day decoding is reproduced}
@@ -157,6 +157,17 @@ geometry selection and becomes worse. Thus geometry remains useful as a candidat
 override signal, but the gate needs richer confidence features than a single
 distance ratio.
 
+\subsection{T12 diagnostic blocks show similar geometry structure}
+On T12 diagnostic blocks, using `spikePow' features and past-only source
+candidates, covariance geometry increases with temporal separation across 120
+session pairs (Spearman $\rho=0.44$, $p=5.4\times10^{-7}$). Geometry selects the
+immediately previous session in 8/15 evaluable target sessions and an older
+non-previous source in 7/15 sessions. The median selected source lag is 6 days,
+but older-state returns appear in several sessions, including selections 53 and
+12 days into the past. This supports the geometry/recency framing in a second
+dataset while remaining strictly a geometry-only feasibility check, not a T12
+decoder replication.
+
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
 remaining error calls for stronger adaptation. These preliminary results suggest that
@@ -177,9 +188,8 @@ confidence model for deciding when to override recency.
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC
 loss, decoder confidence, or related decoder-facing metrics are required for a stronger
-paper. T12 validation is currently scaffolded but should not be interpreted as a
-replication result until the diagnostic blocks are downloaded locally and the
-geometry-only analysis is run on real T12 MAT files.
+paper. The T12 diagnostic-block analysis is geometry-only and should not be
+interpreted as decoder replication or evidence of T12 PER recovery.
 
 \section{Conclusion}
 Adaptation ladders can provide a practical way to decide how much correction a

@@ -100,7 +100,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Beginning-of-day K-shot geometry selection makes this practical: using only the first K validation trials to estimate target-session geometry, then decoding the remaining trials through a past-only selected source layer, gives 14.00% PER at K=5, 13.19% at K=10, and 12.74% at K=20. This recovers roughly 63%, 68%, and 71% of the fixed-source loss without labels or new training.
 - A previous-session baseline is even stronger in the K-shot setting: using the immediately previous input layer gives 13.09% PER at K=5, 12.84% at K=10, and 12.21% at K=20 on the same remaining-trial subsets. K-shot geometry selects the previous session in about 70-78% of target sessions and chooses an older source in the remaining cases, so the current conclusion is that recency is a strong baseline and geometry should be tested as a recency-aware override rather than claimed to beat recency yet.
 - A simple recency-aware override gate was tested next: default to the previous input layer and switch to the geometry-selected older source only when its covariance distance is less than alpha times the previous-source distance. This naive ratio gate does not yet beat previous-session recency in a meaningful way. At alpha=0.90 it ties previous at K=5, is slightly worse at K=10, and gives only a tiny K=20 improvement from 12.21% to 12.18% PER. This suggests future gates need richer confidence features than a single distance ratio.
-- T12 is now set up as a geometry-only feasibility validation rather than a full decoder reproduction. The Dryad manifest for `Data for: A high-performance speech neuroprosthesis` is tracked locally, and the next lightweight step is to download/extract only `diagnosticBlocks.tar.gz` into `data/raw/t12_diagnosticBlocks/` and run the T12 geometry script.
+- T12 geometry-only feasibility now runs on `diagnosticBlocks` using `spikePow` features. Across 15 evaluable past-source diagnostic sessions, covariance distance increases with temporal separation (Spearman rho = 0.44, p = 5.4e-7). Geometry selects the immediately previous session in 8/15 sessions and a non-recent older source in 7/15 sessions, supporting the idea that recency is important but drift geometry can reveal returns to older neural states. This is not a T12 decoder/PER replication.
 
 ## Decoder Experiments
 
@@ -396,6 +396,7 @@ Run the geometry-only validation:
 ```bash
 python scripts/run_t12_geometry_feasibility.py \
   --data-dir data/raw/t12_diagnosticBlocks \
+  --feature-key spikePow \
   --source-candidate-mode past-only \
   --selection-metric cov_relative_fro_shift_from_source \
   --max-frames 60000 \

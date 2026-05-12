@@ -133,14 +133,17 @@ current gate does not yet turn geometry into a meaningful improvement over
 recency, but it clarifies the next modeling target: a useful override needs a
 richer confidence signal than a single nearest/previous distance ratio.
 
-T12 feasibility is now scaffolded as an optional geometry-only validation, not a
-full decoder reproduction. The official Dryad API manifest for `Data for: A
-high-performance speech neuroprosthesis` has been captured locally. The smallest
-useful archive for our question is `diagnosticBlocks.tar.gz` (about 0.57 GB),
-whereas `sentences`, `derived`, and the language-model archives are much larger
-and should be avoided unless we intentionally attempt a decoder reproduction. A
-new script, `run_t12_geometry_feasibility.py`, can inspect candidate variables in
-the diagnostic MAT files and compute session geometry, previous-session recency,
-and geometry-nearest source selection. No T12 result should be claimed until the
-diagnosticBlocks archive is downloaded and the script is run on real local MAT
-files.
+T12 feasibility is now a real geometry-only validation, not a full decoder
+reproduction. The downloaded Dryad archive contains `diagnosticBlocks.tar.gz`
+with 16 diagnostic MAT files from 2022-06-16 through 2022-08-25. Variable
+inspection identifies `spikePow` as the clearest neural feature candidate
+(roughly 12.6k time bins by 256 channels per session), with `tx1`-`tx4` also
+available. Using `spikePow` and past-only source candidates, 15 target sessions
+are evaluable. Covariance geometry increases with temporal separation
+(Spearman rho = 0.44, p = 5.4e-7 across 120 past-source pairs). Geometry selects
+the immediately previous session in 8/15 targets and a non-recent older source
+in 7/15 targets. Median selected lag is 6 days, but the mean lag is 12.1 days
+because several sessions choose older states, including 2022-08-13 choosing
+2022-06-21 and 2022-08-25 choosing 2022-08-13. This supports the paper's
+geometry/recency framing in a second participant/dataset, while remaining
+strictly geometry-only: no T12 decoder or PER replication is claimed.

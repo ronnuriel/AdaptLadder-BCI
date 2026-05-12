@@ -36,3 +36,14 @@ K=10, and from 21.51% to 20.21% at K=20. Recovery of the native-day gap rises
 from 3.8% to 4.9% to 10.1%, while moment matching remains worse than no
 correction. Because this run used only 5 epochs, it should be treated as a
 preliminary full-session result rather than the final calibration setting.
+
+A full input-layer calibration variant was also tested with the same first-K
+protocol, freezing the GRU and output head while learning a 512x512 input matrix
+and bias initialized from the middle source input layer. With 5 training epochs,
+input-layer calibration improves weighted PER from 22.51% to 21.70% at K=5,
+from 22.48% to 21.60% at K=10, and from 21.51% to 20.27% at K=20. This is
+slightly better than diagonal affine at K=5/10 and roughly tied at K=20, but it
+still recovers only about 6.0%, 6.5%, and 9.7% of the native-day gap. The main
+takeaway is therefore not that full input-layer calibration solves drift, but
+that learned small-calibration adapters consistently outperform moment matching
+while remaining far from native day-specific adaptation.

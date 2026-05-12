@@ -90,6 +90,7 @@ results/figures/t15_mean_shift_heatmap.png
 - The first adaptation ladder run on the middle `t15.2023.11.26` source finds that target z-scoring and source moment matching do not recover the cross-day loss, suggesting mean/variance alignment alone is insufficient.
 - A small supervised diagonal-affine calibration script is available for the next ladder step: learn only per-channel scale and bias from the first K labeled trials, then evaluate PER on the remaining validation trials.
 - A CPU-feasible all-session affine run with 5 training epochs shows a modest but consistent recovery: diagonal affine improves weighted PER from 22.51% to 21.99% at K=5, 22.48% to 21.81% at K=10, and 21.51% to 20.21% at K=20.
+- A CPU-feasible all-session full input-layer run with 5 epochs gives similar modest recovery: input-layer calibration improves weighted PER from 22.51% to 21.70% at K=5, 22.48% to 21.60% at K=10, and 21.51% to 20.27% at K=20.
 
 ## Decoder Experiments
 
@@ -178,6 +179,30 @@ python scripts/run_t15_affine_calibration_eval.py \
 
 The checked pilot used the same command with `--epochs 5` and `_epochs5`
 output suffixes.
+
+Small-calibration full input layer, middle source:
+
+```bash
+python scripts/run_t15_input_layer_calibration_eval.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --source-session t15.2023.11.26 \
+  --calibration-trials 5 10 20 \
+  --methods native-day none moment_match_to_source input_layer \
+  --epochs 5 \
+  --learning-rate 1e-4 \
+  --l2-weight 1e-4 \
+  --device cpu \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_input_layer_calibration_trial_results_source_middle_epochs5.csv \
+  --output-summary results/tables/t15_input_layer_calibration_session_summary_source_middle_epochs5.csv \
+  --output-overall results/tables/t15_input_layer_calibration_overall_summary_source_middle_epochs5.csv \
+  --output-training results/tables/t15_input_layer_calibration_training_summary_source_middle_epochs5.csv \
+  --output-weighted-figure results/figures/t15_input_layer_calibration_weighted_per_source_middle_epochs5.png \
+  --output-recovery-figure results/figures/t15_input_layer_calibration_recovery_source_middle_epochs5.png
+```
 
 ## Paper draft
 

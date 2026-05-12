@@ -91,6 +91,7 @@ results/figures/t15_mean_shift_heatmap.png
 - A small supervised diagonal-affine calibration script is available for the next ladder step: learn only per-channel scale and bias from the first K labeled trials, then evaluate PER on the remaining validation trials.
 - A CPU-feasible all-session affine run with 5 training epochs shows a modest but consistent recovery: diagonal affine improves weighted PER from 22.51% to 21.99% at K=5, 22.48% to 21.81% at K=10, and 21.51% to 20.21% at K=20.
 - A CPU-feasible all-session full input-layer run with 5 epochs gives similar modest recovery: input-layer calibration improves weighted PER from 22.51% to 21.70% at K=5, 22.48% to 21.60% at K=10, and 21.51% to 20.27% at K=20.
+- Recovery-geometry analysis suggests cross-day PER is strongly associated with temporal/covariance distance from the source, while input-layer recovery is weaker for more distant or covariance-shifted sessions.
 
 ## Decoder Experiments
 
@@ -202,6 +203,28 @@ python scripts/run_t15_input_layer_calibration_eval.py \
   --output-training results/tables/t15_input_layer_calibration_training_summary_source_middle_epochs5.csv \
   --output-weighted-figure results/figures/t15_input_layer_calibration_weighted_per_source_middle_epochs5.png \
   --output-recovery-figure results/figures/t15_input_layer_calibration_recovery_source_middle_epochs5.png
+```
+
+Recovery geometry analysis:
+
+```bash
+python scripts/analyze_t15_recovery_geometry.py \
+  --data-dir data/raw/hdf5_data_final \
+  --stats-split train \
+  --source-session t15.2023.11.26 \
+  --max-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05
+```
+
+Writes:
+
+```text
+results/tables/t15_session_recovery_geometry_joined.csv
+results/tables/t15_recovery_geometry_correlations.csv
+results/figures/t15_recovery_vs_subspace_angle.png
+results/figures/t15_recovery_vs_cross_day_per.png
+results/figures/t15_recovery_vs_time_distance.png
 ```
 
 ## Paper draft

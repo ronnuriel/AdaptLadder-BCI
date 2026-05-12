@@ -47,3 +47,15 @@ still recovers only about 6.0%, 6.5%, and 9.7% of the native-day gap. The main
 takeaway is therefore not that full input-layer calibration solves drift, but
 that learned small-calibration adapters consistently outperform moment matching
 while remaining far from native day-specific adaptation.
+
+Recovery-geometry analysis was added to connect the adaptation results with the
+shape of cross-session drift. Using sampled train frames relative to the middle
+`t15.2023.11.26` source, temporal distance and covariance/CORAL-style distance
+are strongly associated with cross-day PER (Spearman correlations around
+0.75-0.87 across K subsets). Input-layer recovery is weaker for sessions that
+are farther away in time or covariance/subspace geometry; for example, K=5
+input-layer recovery has Spearman correlations of -0.49 with absolute days from
+source and -0.43 with relative covariance shift. This supports the emerging
+interpretation that small adapters help most when the target session remains
+geometrically close enough to the source, while larger drift may require a
+stronger adaptation level.

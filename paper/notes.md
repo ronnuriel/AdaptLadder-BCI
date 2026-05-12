@@ -92,3 +92,17 @@ improves 34/40 sessions relative to the fixed middle source. This is a much
 stronger paper result than the small learned-adapter recovery: geometry can
 guide source-layer selection and recover a large fraction of the cross-day loss
 without training any new parameters.
+
+Beginning-of-day K-shot geometry selection makes the same idea more realistic.
+For each target session, only the first K validation trials are used to estimate
+target neural geometry; no labels are used. A past source input layer is then
+selected by relative covariance distance and PER is measured only on the
+remaining trials. This gives 14.00% phoneme-weighted PER at K=5, 13.19% at
+K=10, and 12.74% at K=20. On the same remaining-trial subsets, fixed middle
+source decoding gives 22.51%, 22.40%, and 22.30%, while native-day decoding
+gives 8.95%, 8.88%, and 8.90%. Thus K-shot geometry source selection recovers
+62.8%, 68.1%, and 71.3% of the fixed-source gap, improving 36/41, 36/40, and
+34/37 sessions relative to fixed middle. This is now the cleanest main result:
+a short unlabeled beginning-of-day neural window can choose a compatible
+existing input layer and recover most of the cross-day degradation without
+training new parameters.

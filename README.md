@@ -94,6 +94,7 @@ results/figures/t15_mean_shift_heatmap.png
 - A CPU-feasible all-session full input-layer run with 5 epochs gives similar modest recovery: input-layer calibration improves weighted PER from 22.51% to 21.70% at K=5, 22.48% to 21.60% at K=10, and 21.51% to 20.27% at K=20.
 - Recovery-geometry analysis suggests cross-day PER is strongly associated with temporal/covariance distance from the source. Permutation-tested Spearman correlations between cross-day PER and distance are around 0.77-0.87, while K=5 input-layer recovery is lower for temporally/covariance-distant sessions.
 - Geometry-nearest source selection is the strongest geometry-aware result so far. Choosing the closest non-native input layer by covariance geometry gives 11.38% phoneme-weighted PER when all sessions are available as candidate sources, and 13.58% PER in a stricter past-only source setting. Both are far below the fixed middle-source 22.67% PER baseline.
+- Beginning-of-day K-shot geometry selection makes this practical: using only the first K validation trials to estimate target-session geometry, then decoding the remaining trials through a past-only selected source layer, gives 14.00% PER at K=5, 13.19% at K=10, and 12.74% at K=20. This recovers roughly 63%, 68%, and 71% of the fixed-source loss without labels or new training.
 
 ## Decoder Experiments
 
@@ -278,6 +279,34 @@ results/tables/t15_geometry_nearest_source_trial_results.csv
 results/tables/t15_geometry_nearest_source_session_summary.csv
 results/tables/t15_geometry_nearest_source_overall_summary.csv
 results/figures/t15_geometry_nearest_source_weighted_per.png
+```
+
+Beginning-of-day K-shot geometry source selection:
+
+```bash
+python scripts/run_t15_kshot_geometry_source_selection.py \
+  --calibration-trials 5 10 20 \
+  --source-candidate-mode past-only \
+  --selection-metric cov_relative_fro_shift_from_source \
+  --max-source-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05 \
+  --gpu-number -1
+```
+
+For each target session and K, this uses only the first K validation trials to
+estimate target geometry, chooses a past source input layer, and evaluates PER
+only on the remaining validation trials. The first K trials are not decoded in
+the reported K-shot PER.
+
+Writes:
+
+```text
+results/tables/t15_kshot_geometry_source_selection.csv
+results/tables/t15_kshot_geometry_source_trial_results.csv
+results/tables/t15_kshot_geometry_source_session_summary.csv
+results/tables/t15_kshot_geometry_source_overall_summary.csv
+results/figures/t15_kshot_geometry_source_weighted_per.png
 ```
 
 ## Paper draft

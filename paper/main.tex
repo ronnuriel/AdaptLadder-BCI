@@ -63,6 +63,11 @@ select the nearest source input layer before running the frozen GRU. We evaluate
 offline setting with all other sessions as candidates and a stricter past-only
 setting that excludes future source sessions.
 
+\subsection{Beginning-of-day K-shot selection}
+To approximate deployment, we estimate target-session geometry from only the first
+$K$ validation trials, without labels. We then select the nearest past source input
+layer and evaluate decoding only on the remaining trials from that target session.
+
 \section{Results}
 \subsection{Native-day decoding is reproduced}
 The official checkpoint reaches 9.06\% phoneme-weighted PER on the T15 validation
@@ -107,6 +112,16 @@ source. In the stricter past-only setting, geometry-nearest selection reaches
 source on the same sessions and 9.10\% native-day PER. This suggests that drift
 geometry can guide source-layer selection, not only post-hoc analysis of failures.
 
+\subsection{A short unlabeled calibration window is enough for source selection}
+Beginning-of-day K-shot selection preserves most of the geometry-selection benefit
+while using only a short unlabeled target-session window. With past-only source
+candidates, K-shot geometry selection reaches 14.00\% PER at $K=5$, 13.19\% at
+$K=10$, and 12.74\% at $K=20$, evaluated only on the remaining trials. On the same
+subsets, the fixed middle source gives 22.51\%, 22.40\%, and 22.30\%, while
+native-day decoding gives 8.95\%, 8.88\%, and 8.90\%. This corresponds to recovery
+of 62.8\%, 68.1\%, and 71.3\% of the fixed-source gap, improving 36/41, 36/40,
+and 34/37 sessions relative to fixed middle.
+
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
 remaining error calls for stronger adaptation. These preliminary results suggest that
@@ -114,7 +129,9 @@ moment-based correction is too weak, small learned adapters recover some loss, a
 drift geometry may help choose the next rung of the adaptation ladder. The strongest
 current result is geometry-guided source selection: before learning any new adapter,
 choosing a geometrically compatible existing input layer recovers much of the loss
-from a fixed non-native source.
+from a fixed non-native source. Importantly, this does not require full-session
+access: an unlabeled beginning-of-day window of 20 trials recovers about 71\% of the
+fixed-source loss on the rest of the session.
 
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC

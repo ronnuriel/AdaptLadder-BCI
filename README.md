@@ -87,6 +87,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Native-day validation reaches 9.06% phoneme-weighted PER.
 - Cross-day stress with source `t15.2023.08.13` reaches 28.81% phoneme-weighted PER and harms 40/41 sessions.
 - A three-source sweep gives 28.81% PER for early, 22.67% for middle, and 34.43% for late source layers; each harms 40/41 sessions.
+- The first adaptation ladder run on the middle `t15.2023.11.26` source finds that target z-scoring and source moment matching do not recover the cross-day loss, suggesting mean/variance alignment alone is insufficient.
 
 ## Decoder Experiments
 
@@ -130,6 +131,24 @@ python scripts/run_t15_decoder_probe.py \
   --output-summary results/tables/t15_decoder_probe_cross_day_source_2025_04_13_session_summary.csv
 
 python scripts/plot_t15_source_sweep.py
+```
+
+Adaptation ladder, middle source:
+
+```bash
+python scripts/run_t15_adaptation_eval.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --source-session t15.2023.11.26 \
+  --adaptations none target_zscore moment_match_to_source \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_adaptation_trial_results_source_middle.csv \
+  --output-summary results/tables/t15_adaptation_session_summary_source_middle.csv \
+  --output-overall results/tables/t15_adaptation_overall_summary_source_middle.csv \
+  --output-weighted-figure results/figures/t15_adaptation_ladder_weighted_per_source_middle.png \
+  --output-delta-figure results/figures/t15_adaptation_ladder_delta_per_by_session_source_middle.png
 ```
 
 ## Paper draft

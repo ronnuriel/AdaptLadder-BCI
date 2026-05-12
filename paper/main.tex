@@ -6,7 +6,7 @@
 \usepackage{hyperref}
 
 \title{How Much Adaptation Is Enough?\\Drift Geometry and Minimal Calibration in Brain-to-Text BCI}
-\author{AdaptLadder-BCI}
+\author{Anonymous Authors}
 \date{}
 
 \begin{document}
@@ -14,20 +14,19 @@
 
 \begin{abstract}
 Brain-to-text BCI decoders must remain usable as neural signals change across
-recording sessions. We study this problem without proposing a new decoder:
-instead, we audit how much input adaptation is needed when the official T15
-brain-to-text GRU is evaluated across sessions. The native day-specific input
-layers reproduce low validation phoneme error (9.06\% PER), while forcing
+recording sessions. We audit how much input adaptation is needed when the
+official T15 brain-to-text GRU is evaluated across sessions. Native day-specific
+input layers reproduce low validation phoneme error (9.06\% PER), while forcing
 sessions through non-native input layers increases PER to 22.67--34.43\%.
-Simple unsupervised moment corrections fail to recover this loss, and small
-supervised input adapters recover only a modest fraction. The strongest practical
-result is source-layer selection: using a short unlabeled beginning-of-day window
-to choose a past input layer recovers much of the fixed-source loss, but the
-immediately previous session is an even stronger simple baseline. A secondary
-geometry-only analysis of T12 diagnostic blocks shows similar longitudinal
-structure. Together, these results suggest that recency should be the default
-adaptation prior, while drift geometry is a useful signal for deciding when that
-default may need to be overridden.
+Unsupervised moment corrections fail to recover this loss, and small supervised
+input adapters recover only about 10\% of the native-day gap. The strongest
+practical result is source-layer selection: using a short unlabeled
+beginning-of-day window to choose a past input layer recovers much of the
+fixed-source loss, but the immediately previous session is an even stronger
+simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks
+shows similar longitudinal structure. These results suggest that recency should
+be the default adaptation prior, while drift geometry is a useful signal for
+deciding when that default may need to be overridden.
 \end{abstract}
 
 \section{Introduction}
@@ -36,13 +35,14 @@ machinery because intracortical neural features drift across days. This raises a
 practical question: before retraining a decoder or collecting a long supervised
 calibration set, how much adaptation is enough?
 
-We examine this question in the official T15 brain-to-text GRU baseline. The
-model already contains learned day-specific input layers, followed by a frozen
-GRU and output head. This structure creates a useful stress test: if a target
-session is decoded through the wrong input layer, performance measures the
-decoder-facing cost of cross-session input mismatch. We then ask whether simple
-feature corrections, small learned adapters, or geometry-guided source selection
-can recover the lost performance.
+We examine this question in the official T15 brain-to-text GRU baseline from a
+rapidly calibrating speech neuroprosthesis study~\cite{card2024accurate}. The
+model contains learned day-specific input layers, followed by a GRU and output
+head. This structure creates a useful stress test: if a target session is decoded
+through the wrong input layer, performance measures the decoder-facing cost of
+cross-session input mismatch. We then ask whether simple feature corrections,
+small learned adapters, or geometry-guided source selection can recover the lost
+performance.
 
 The contribution is not a new speech decoder. Instead, we provide a decoder-facing
 adaptation audit:
@@ -56,11 +56,36 @@ adaptation audit:
     second dataset, without claiming T12 decoder replication.
 \end{itemize}
 
+\section{Related Work}
+Intracortical communication BCIs have advanced rapidly from handwriting-based
+brain-to-text decoding~\cite{willett2021handwriting,fan2023corp} to speech
+neuroprostheses that decode attempted speech into text or spoken
+output~\cite{willett2023speech,card2024accurate}. These systems commonly rely on
+recurrent neural decoders and session-specific adaptation or recalibration to
+maintain performance as recordings change over time.
+
+Cross-session stability has also been studied through the lens of neural
+geometry. Manifold-alignment methods can stabilize fixed decoders by aligning
+low-dimensional neural activity across recording instabilities~\cite{degenhart2020stabilization},
+and recent dynamics-aware approaches such as NoMAD use temporal structure to
+perform unsupervised alignment over weeks to months~\cite{karpowicz2025nomad}.
+In speech BCI specifically, adversarial session-invariant learning has recently
+been proposed to reduce session-specific information while preserving phoneme
+decoding structure~\cite{zhang2026align}. Continual recalibration with
+pseudo-labels provides a complementary route, using language-model corrections to
+update communication decoders online~\cite{fan2023corp}.
+
+Our work is narrower. We do not train a new robust decoder or propose a full
+recalibration method. Instead, we audit the official T15 decoder to ask which
+low-cost adaptation rungs are sufficient, when they fail, and how recency and
+drift geometry can guide source-layer choice.
+
 \section{Data and Decoder}
 \textbf{T15.} The main experiments use T15 copy-task neural features from the
-official brain-to-text dataset. We evaluate 41 validation sessions with available
-ground-truth phoneme labels. Neural inputs are passed through the official GRU
-checkpoint and decoded greedily at the phoneme level using CTC collapse.
+official brain-to-text dataset~\cite{card2024accurate}. We evaluate 41
+validation sessions with available ground-truth phoneme labels. Neural inputs
+are passed through the official GRU checkpoint and decoded greedily at the
+phoneme level using CTC collapse.
 
 \textbf{Official baseline.} The decoder contains learned day-specific input
 layers, a GRU backbone, and an output layer over phoneme classes. We evaluate two
@@ -68,10 +93,10 @@ families of conditions. In the native-day condition, each session uses its own
 input layer. In cross-day stress tests, target sessions use a fixed or selected
 non-native source input layer while the rest of the decoder remains unchanged.
 
-\textbf{T12 diagnostic blocks.} As a secondary check, we analyze the
-high-performance speech neuroprosthesis T12 diagnostic blocks from Dryad. This is
-a geometry-only analysis of spike-power features; we do not reproduce the T12
-decoder or report T12 PER.
+\textbf{T12 diagnostic blocks.} As a secondary check, we analyze diagnostic
+blocks from the T12 high-performance speech neuroprosthesis dataset~\cite{willett2023speech}.
+This is a geometry-only analysis of spike-power features; we do not reproduce the
+T12 decoder or report T12 PER.
 
 \section{Methods}
 \subsection{Decoder-Facing Metrics}
@@ -256,9 +281,10 @@ diagnostics.
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER
 is lighter than full WER and avoids the language-model/Redis evaluation stack.
 T12 is geometry-only and should not be interpreted as T12 PER replication. The
-learned adapter experiments use validation calibration splits and short training
-runs; they are intended to map adaptation rungs, not to optimize a final
-deployment recipe.
+learned adapter and K-shot source-selection experiments simulate a
+beginning-of-day calibration window within the validation split and evaluate only
+on the remaining trials. They are intended to map adaptation rungs, not to
+optimize a final deployment benchmark.
 
 \section{Conclusion}
 For T15 brain-to-text decoding, fixed non-native input layers break the decoder,
@@ -270,5 +296,47 @@ This supports a recency-aware, geometry-guided adaptation ladder: start with the
 previous input state, measure drift geometry from a short unlabeled window, and
 move to stronger calibration only when the geometry indicates that simple source
 selection is not enough.
+
+\begin{thebibliography}{9}
+
+\bibitem{card2024accurate}
+N.~S. Card, M.~Wairagkar, C.~Iacobacci, et~al.
+\newblock An accurate and rapidly calibrating speech neuroprosthesis.
+\newblock \emph{New England Journal of Medicine}, 391(7):609--618, 2024.
+
+\bibitem{willett2023speech}
+F.~R. Willett, E.~M. Kunz, C.~Fan, et~al.
+\newblock A high-performance speech neuroprosthesis.
+\newblock \emph{Nature}, 620:1031--1036, 2023.
+
+\bibitem{willett2021handwriting}
+F.~R. Willett, D.~T. Avansino, L.~R. Hochberg, J.~M. Henderson, and K.~V. Shenoy.
+\newblock High-performance brain-to-text communication via handwriting.
+\newblock \emph{Nature}, 593:249--254, 2021.
+
+\bibitem{degenhart2020stabilization}
+A.~D. Degenhart, W.~E. Bishop, E.~R. Oby, et~al.
+\newblock Stabilization of a brain-computer interface via the alignment of
+low-dimensional spaces of neural activity.
+\newblock \emph{Nature Biomedical Engineering}, 4:672--685, 2020.
+
+\bibitem{karpowicz2025nomad}
+B.~M. Karpowicz, Y.~H. Ali, L.~N. Wimalasena, et~al.
+\newblock Stabilizing brain-computer interfaces through alignment of latent
+dynamics.
+\newblock \emph{Nature Communications}, 16:4662, 2025.
+
+\bibitem{fan2023corp}
+C.~Fan, N.~Hahn, F.~Kamdar, et~al.
+\newblock Plug-and-play stability for intracortical brain-computer interfaces:
+a one-year demonstration of seamless brain-to-text communication.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2023.
+
+\bibitem{zhang2026align}
+Z.~Zhang, S.~Li, B.~L. Sabatini, M.~Aoi, and G.~Mishne.
+\newblock ALIGN: Adversarial learning for generalizable speech neuroprosthesis.
+\newblock \emph{arXiv:2603.18299}, 2026.
+
+\end{thebibliography}
 
 \end{document}

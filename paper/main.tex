@@ -67,6 +67,8 @@ setting that excludes future source sessions.
 To approximate deployment, we estimate target-session geometry from only the first
 $K$ validation trials, without labels. We then select the nearest past source input
 layer and evaluate decoding only on the remaining trials from that target session.
+We also compare this rule against a previous-session baseline that uses the
+immediately preceding input layer.
 
 \section{Results}
 \subsection{Native-day decoding is reproduced}
@@ -122,6 +124,18 @@ native-day decoding gives 8.95\%, 8.88\%, and 8.90\%. This corresponds to recove
 of 62.8\%, 68.1\%, and 71.3\% of the fixed-source gap, improving 36/41, 36/40,
 and 34/37 sessions relative to fixed middle.
 
+\subsection{Previous-session recency is a strong baseline}
+We further ask whether K-shot geometry selection is more than a recency heuristic.
+Using the immediately previous input layer gives 13.09\% PER at $K=5$, 12.84\%
+at $K=10$, and 12.21\% at $K=20$ on the same remaining-trial subsets, slightly
+better than K-shot geometry selection. Geometry selects the previous session in
+30/41, 31/40, and 26/37 target sessions for $K=5/10/20$. When it selects an
+older source, it improves over the previous-session source in 3, 3, and 4
+sessions, respectively, but the aggregate result still favors the previous
+session. Thus temporal recency is a strong baseline; geometry currently appears
+most useful as a way to detect possible non-recent source matches rather than as
+a replacement for the previous-session rule.
+
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
 remaining error calls for stronger adaptation. These preliminary results suggest that
@@ -131,7 +145,11 @@ current result is geometry-guided source selection: before learning any new adap
 choosing a geometrically compatible existing input layer recovers much of the loss
 from a fixed non-native source. Importantly, this does not require full-session
 access: an unlabeled beginning-of-day window of 20 trials recovers about 71\% of the
-fixed-source loss on the rest of the session.
+fixed-source loss on the rest of the session. However, the previous-session input
+layer is an even stronger simple baseline in this K-shot analysis. Future
+geometry-aware gates should therefore be compared against recency and may be most
+valuable when they identify sessions whose neural geometry returns to an older
+input-layer state.
 
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC

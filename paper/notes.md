@@ -102,7 +102,21 @@ K=10, and 12.74% at K=20. On the same remaining-trial subsets, fixed middle
 source decoding gives 22.51%, 22.40%, and 22.30%, while native-day decoding
 gives 8.95%, 8.88%, and 8.90%. Thus K-shot geometry source selection recovers
 62.8%, 68.1%, and 71.3% of the fixed-source gap, improving 36/41, 36/40, and
-34/37 sessions relative to fixed middle. This is now the cleanest main result:
-a short unlabeled beginning-of-day neural window can choose a compatible
-existing input layer and recover most of the cross-day degradation without
-training new parameters.
+34/37 sessions relative to fixed middle. This is a strong practical result: a
+short unlabeled beginning-of-day neural window can choose a compatible existing
+input layer and recover much of the cross-day degradation without training new
+parameters.
+
+We then tested whether K-shot geometry selection is doing more than choosing the
+most recent past session. The immediately previous input layer is a very strong
+baseline: on the same remaining-trial subsets it gives 13.09% PER at K=5,
+12.84% at K=10, and 12.21% at K=20, slightly better than K-shot geometry
+selection at 14.00%, 13.19%, and 12.74%. Geometry selected the previous session
+in 30/41, 31/40, and 26/37 target sessions, respectively. In the remaining
+non-previous selections, geometry sometimes found a better older source
+(3, 3, and 4 sessions at K=5/10/20), but the average effect still favored the
+previous-session source. The key interpretation is therefore more careful:
+temporal recency is itself a strong source-selection heuristic, while geometry
+reveals occasional returns to older neural/input-layer states and should be
+developed as a recency-aware override or gate rather than presented as already
+better than recency.

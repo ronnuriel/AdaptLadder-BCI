@@ -95,6 +95,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Recovery-geometry analysis suggests cross-day PER is strongly associated with temporal/covariance distance from the source. Permutation-tested Spearman correlations between cross-day PER and distance are around 0.77-0.87, while K=5 input-layer recovery is lower for temporally/covariance-distant sessions.
 - Geometry-nearest source selection is the strongest geometry-aware result so far. Choosing the closest non-native input layer by covariance geometry gives 11.38% phoneme-weighted PER when all sessions are available as candidate sources, and 13.58% PER in a stricter past-only source setting. Both are far below the fixed middle-source 22.67% PER baseline.
 - Beginning-of-day K-shot geometry selection makes this practical: using only the first K validation trials to estimate target-session geometry, then decoding the remaining trials through a past-only selected source layer, gives 14.00% PER at K=5, 13.19% at K=10, and 12.74% at K=20. This recovers roughly 63%, 68%, and 71% of the fixed-source loss without labels or new training.
+- A previous-session baseline is even stronger in the K-shot setting: using the immediately previous input layer gives 13.09% PER at K=5, 12.84% at K=10, and 12.21% at K=20 on the same remaining-trial subsets. K-shot geometry selects the previous session in about 70-78% of target sessions and chooses an older source in the remaining cases, so the current conclusion is that recency is a strong baseline and geometry should be tested as a recency-aware override rather than claimed to beat recency yet.
 
 ## Decoder Experiments
 
@@ -307,6 +308,31 @@ results/tables/t15_kshot_geometry_source_trial_results.csv
 results/tables/t15_kshot_geometry_source_session_summary.csv
 results/tables/t15_kshot_geometry_source_overall_summary.csv
 results/figures/t15_kshot_geometry_source_weighted_per.png
+```
+
+Selected-source and previous-session comparison:
+
+```bash
+python scripts/analyze_t15_selected_sources.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --gpu-number -1
+```
+
+Writes:
+
+```text
+results/tables/t15_kshot_selected_source_summary.csv
+results/tables/t15_kshot_selected_sources_annotated.csv
+results/tables/t15_kshot_previous_source_trial_results.csv
+results/tables/t15_kshot_previous_source_session_summary.csv
+results/tables/t15_kshot_previous_vs_geometry_summary.csv
+results/tables/t15_kshot_previous_vs_geometry_session_comparison.csv
+results/figures/t15_selected_source_lag_histogram.png
+results/figures/t15_previous_vs_geometry_per.png
+results/figures/t15_selected_source_timeline.png
 ```
 
 ## Paper draft

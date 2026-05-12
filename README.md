@@ -88,6 +88,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Cross-day stress with source `t15.2023.08.13` reaches 28.81% phoneme-weighted PER and harms 40/41 sessions.
 - A three-source sweep gives 28.81% PER for early, 22.67% for middle, and 34.43% for late source layers; each harms 40/41 sessions.
 - The first adaptation ladder run on the middle `t15.2023.11.26` source finds that target z-scoring and source moment matching do not recover the cross-day loss, suggesting mean/variance alignment alone is insufficient.
+- A small supervised diagonal-affine calibration script is available for the next ladder step: learn only per-channel scale and bias from the first K labeled trials, then evaluate PER on the remaining validation trials.
 
 ## Decoder Experiments
 
@@ -149,6 +150,28 @@ python scripts/run_t15_adaptation_eval.py \
   --output-overall results/tables/t15_adaptation_overall_summary_source_middle.csv \
   --output-weighted-figure results/figures/t15_adaptation_ladder_weighted_per_source_middle.png \
   --output-delta-figure results/figures/t15_adaptation_ladder_delta_per_by_session_source_middle.png
+```
+
+Small-calibration diagonal affine, middle source:
+
+```bash
+python scripts/run_t15_affine_calibration_eval.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --source-session t15.2023.11.26 \
+  --calibration-trials 5 10 20 \
+  --methods native-day none moment_match_to_source diagonal_affine \
+  --epochs 40 \
+  --learning-rate 0.01 \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_affine_calibration_trial_results_source_middle.csv \
+  --output-summary results/tables/t15_affine_calibration_session_summary_source_middle.csv \
+  --output-overall results/tables/t15_affine_calibration_overall_summary_source_middle.csv \
+  --output-training results/tables/t15_affine_calibration_training_summary_source_middle.csv \
+  --output-weighted-figure results/figures/t15_affine_calibration_weighted_per_source_middle.png \
+  --output-recovery-figure results/figures/t15_affine_calibration_recovery_source_middle.png
 ```
 
 ## Paper draft

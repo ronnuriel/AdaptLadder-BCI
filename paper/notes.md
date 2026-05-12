@@ -21,3 +21,10 @@ z-scoring gave 22.75% PER and moment matching to the source distribution gave
 simple channel-wise mean/variance alignment is not enough to emulate the
 official day-specific input layers; those layers likely capture stronger
 session-specific transformations than first and second moments.
+
+The next ladder step is supervised small-calibration diagonal affine adaptation.
+For each target session, the first K labeled validation trials are used only to
+learn per-channel scale and bias through CTC loss while freezing the official
+GRU and source input layer. PER is then measured on the remaining trials. This
+keeps the intervention lightweight while testing whether minimal learned
+feature reweighting can recover what unsupervised moment correction could not.

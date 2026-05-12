@@ -56,6 +56,13 @@ distance, mean and scale shifts, covariance/CORAL-style distances, and PCA subsp
 distances. We correlate these metrics with cross-day PER and with the recovered
 fraction of the native-day performance gap.
 
+\subsection{Geometry-guided source selection}
+We also test whether drift geometry can be used constructively. For each target
+session, we compute geometry distances to candidate non-native source sessions and
+select the nearest source input layer before running the frozen GRU. We evaluate an
+offline setting with all other sessions as candidates and a stricter past-only
+setting that excludes future source sessions.
+
 \section{Results}
 \subsection{Native-day decoding is reproduced}
 The official checkpoint reaches 9.06\% phoneme-weighted PER on the T15 validation
@@ -89,11 +96,25 @@ more variable, but input-layer recovery at $K=5$ decreases with distance
 $p=0.009$). A covariance-distance median split shows higher input-layer recovery
 for near sessions at $K=5$ and $K=20$, while $K=10$ is mixed.
 
+\subsection{Geometry can select a better non-native input layer}
+Selecting the nearest non-native source input layer by relative covariance distance
+substantially reduces cross-day degradation without training new parameters. In the
+offline all-candidate setting, geometry-nearest selection reaches 11.38\%
+phoneme-weighted PER, compared with 22.67\% for the fixed middle source and 9.06\%
+for native-day decoding. It improves 39/41 sessions relative to the fixed middle
+source. In the stricter past-only setting, geometry-nearest selection reaches
+13.58\% PER on 40 evaluable sessions, compared with 22.76\% for the fixed middle
+source on the same sessions and 9.10\% native-day PER. This suggests that drift
+geometry can guide source-layer selection, not only post-hoc analysis of failures.
+
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
 remaining error calls for stronger adaptation. These preliminary results suggest that
 moment-based correction is too weak, small learned adapters recover some loss, and
-drift geometry may help choose the next rung of the adaptation ladder.
+drift geometry may help choose the next rung of the adaptation ladder. The strongest
+current result is geometry-guided source selection: before learning any new adapter,
+choosing a geometrically compatible existing input layer recovers much of the loss
+from a fixed non-native source.
 
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC

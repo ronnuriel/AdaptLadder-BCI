@@ -73,3 +73,22 @@ near sessions versus 6.3% in far sessions, improving 18/19 near sessions and
 that a single threshold perfectly gates adaptation, but that drift geometry
 strongly predicts decoder degradation and provides a measurable signal about
 when small adapters are likely to help.
+
+Geometry-nearest source selection gives the strongest result so far and directly
+uses the geometry signal rather than only analyzing it after the fact. For each
+target session, the nearest non-native source input layer is selected using
+relative covariance distance computed from train-split features, then the frozen
+official GRU is evaluated on validation trials with no adapter training. In the
+offline setting where all other sessions are candidate sources, phoneme-weighted
+PER drops to 11.38%, compared with 22.67% for the fixed middle source and 9.06%
+for native-day decoding. This improves 39/41 sessions relative to the fixed
+middle source, with a median selected source distance of 2 days.
+
+A stricter past-only variant, where the selected input layer must come from an
+earlier session, gives 13.58% phoneme-weighted PER on 40 evaluable sessions
+(the first session has no past source). On the same 40 sessions, native-day PER
+is 9.10% and the fixed middle source gives 22.76%. Past-only geometry selection
+improves 34/40 sessions relative to the fixed middle source. This is a much
+stronger paper result than the small learned-adapter recovery: geometry can
+guide source-layer selection and recover a large fraction of the cross-day loss
+without training any new parameters.

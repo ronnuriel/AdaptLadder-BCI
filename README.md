@@ -93,6 +93,7 @@ results/figures/t15_mean_shift_heatmap.png
 - A CPU-feasible all-session affine run with 5 training epochs shows a modest but consistent recovery: diagonal affine improves weighted PER from 22.51% to 21.99% at K=5, 22.48% to 21.81% at K=10, and 21.51% to 20.21% at K=20.
 - A CPU-feasible all-session full input-layer run with 5 epochs gives similar modest recovery: input-layer calibration improves weighted PER from 22.51% to 21.70% at K=5, 22.48% to 21.60% at K=10, and 21.51% to 20.27% at K=20.
 - Recovery-geometry analysis suggests cross-day PER is strongly associated with temporal/covariance distance from the source. Permutation-tested Spearman correlations between cross-day PER and distance are around 0.77-0.87, while K=5 input-layer recovery is lower for temporally/covariance-distant sessions.
+- Geometry-nearest source selection is the strongest geometry-aware result so far. Choosing the closest non-native input layer by covariance geometry gives 11.38% phoneme-weighted PER when all sessions are available as candidate sources, and 13.58% PER in a stricter past-only source setting. Both are far below the fixed middle-source 22.67% PER baseline.
 
 ## Decoder Experiments
 
@@ -230,6 +231,53 @@ results/figures/t15_recovery_vs_subspace_angle.png
 results/figures/t15_recovery_vs_cross_day_per.png
 results/figures/t15_recovery_vs_time_distance.png
 results/figures/t15_near_far_recovery_by_covariance.png
+```
+
+Geometry-nearest non-native source selection:
+
+```bash
+python scripts/run_t15_geometry_source_selection_eval.py \
+  --data-dir data/raw/hdf5_data_final \
+  --eval-type val \
+  --stats-split train \
+  --selection-metric cov_relative_fro_shift_from_source \
+  --source-candidate-mode all \
+  --max-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05 \
+  --gpu-number -1
+```
+
+Past-only source selection, which avoids choosing a future session as the source:
+
+```bash
+python scripts/run_t15_geometry_source_selection_eval.py \
+  --data-dir data/raw/hdf5_data_final \
+  --eval-type val \
+  --stats-split train \
+  --selection-metric cov_relative_fro_shift_from_source \
+  --source-candidate-mode past-only \
+  --max-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05 \
+  --gpu-number -1 \
+  --output-pairwise results/tables/t15_geometry_source_pairwise_distances_past_only.csv \
+  --output-selection results/tables/t15_geometry_nearest_past_source_selection.csv \
+  --output-trials results/tables/t15_geometry_nearest_past_source_trial_results.csv \
+  --output-summary results/tables/t15_geometry_nearest_past_source_session_summary.csv \
+  --output-overall results/tables/t15_geometry_nearest_past_source_overall_summary.csv \
+  --output-figure results/figures/t15_geometry_nearest_past_source_weighted_per.png
+```
+
+Writes:
+
+```text
+results/tables/t15_geometry_source_pairwise_distances.csv
+results/tables/t15_geometry_nearest_source_selection.csv
+results/tables/t15_geometry_nearest_source_trial_results.csv
+results/tables/t15_geometry_nearest_source_session_summary.csv
+results/tables/t15_geometry_nearest_source_overall_summary.csv
+results/figures/t15_geometry_nearest_source_weighted_per.png
 ```
 
 ## Paper draft

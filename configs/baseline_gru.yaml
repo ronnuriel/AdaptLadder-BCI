@@ -1,5 +1,0 @@
-model_name: gru_baseline
-batch_size: 1
-add_post_implant_day: false
-use_checkpoint: true
-notes: first reproducible baseline run

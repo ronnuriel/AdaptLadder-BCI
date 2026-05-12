@@ -3,7 +3,7 @@ numpy
 pandas
 h5py
 matplotlib
+scipy
 omegaconf
 tqdm
 editdistance
-jupyter

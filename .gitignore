@@ -55,6 +55,19 @@ cover/
 profile_default/
 ipython_config.py
 
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
 # Environments
 .env
 .envrc
@@ -85,7 +98,6 @@ data/processed/
 data/external/*/checkpoint/
 data/external/*/train_val_trials.json
 data/external/*/training_log
-data/external/link_dandi/nwb_subset/
 *.nwb
 *.zip
 *.pt

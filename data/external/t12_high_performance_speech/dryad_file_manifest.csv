@@ -1,0 +1,15 @@
+file_id,path,size_bytes,size_gb,mime_type,sha256,download_api_url
+2547377,README.md,4413,0.0,text/markdown,678841c9f31ac185d3f8e6a0881c31e520bcd7019767ba1faa80b64ad419d38d,https://datadryad.org/api/v2/files/2547377/download
+2547369,competitionData.tar.gz,3669638707,3.4176,application/x-tar,5b5c9784d80d5286e69352621366be2e4ff468e043e082e7aa7cbc90d18336b3,https://datadryad.org/api/v2/files/2547369/download
+2547362,competitionData_readme.txt,6247,0.0,text/plain,63d9da90bddd2403c84ff7beff846de63b0db853639686440cdfa72efea4603e,https://datadryad.org/api/v2/files/2547362/download
+2547370,derived.tar.gz,8062039321,7.5084,application/x-tar,44d31076a68969738a72475d3dc708fd91c3d6c2f9adcadba7496f48b3e31117,https://datadryad.org/api/v2/files/2547370/download
+2547357,derived_readme.txt,4957,0.0,text/plain,aa90051845d335f0a1769247aa4281f3803540f5884ab53da781e0f76bd60337,https://datadryad.org/api/v2/files/2547357/download
+2547371,diagnosticBlocks.tar.gz,612391492,0.5703,application/x-tar,dc204dda6a67f25824f6f9b7a7cb6b83ca8142376a9787ebb66fa223402882e7,https://datadryad.org/api/v2/files/2547371/download
+2547358,diagnosticBlocks_readme.txt,6126,0.0,text/plain,d0821b9950c18d5cbf6308732c63c30636b2072949b2d48f0a8c63cb3b513275,https://datadryad.org/api/v2/files/2547358/download
+2547356,languageModel.tar.gz,14106240558,13.1375,application/x-tar,7b64d36c64765dc0a5e890bb0cc795657c827b7d314fbf5ed5dc8778bd166d7e,https://datadryad.org/api/v2/files/2547356/download
+2547359,languageModel_5gram.tar.gz,38245502441,35.6189,application/x-tar,bb2b15cc13d40e484359ffe0afe74580cdbad02440c27586074bfe2e51e7867e,https://datadryad.org/api/v2/files/2547359/download
+2547360,languageModel_readme.txt,1816,0.0,text/plain,d4d29bbcd83b5549374e3651f72964d3d1d56aef98156e5c3169efe1bc4d37cc,https://datadryad.org/api/v2/files/2547360/download
+2547372,sentences.tar.gz,14803440418,13.7868,application/x-tar,d354c97d3fa5e4684adb7046de73e5a21fde805824954490e34cb042d1c948da,https://datadryad.org/api/v2/files/2547372/download
+2547361,sentences_readme.txt,8416,0.0,text/plain,89a78456dbac4ca970498bafb35823666436faf85c9a9bf96c3612f2772d984e,https://datadryad.org/api/v2/files/2547361/download
+2547373,tuningTasks.tar.gz,941344404,0.8767,application/x-tar,8e245a00391f7d6558e6846effdfb29d0c145872864b110a85523a6a2a40fcbf,https://datadryad.org/api/v2/files/2547373/download
+2547363,tuningTasks_readme.txt,6514,0.0,text/plain,22ab4d03ae92881b67704626fd7518653494c7cfe2f17f2277affda3ae96bbf9,https://datadryad.org/api/v2/files/2547363/download

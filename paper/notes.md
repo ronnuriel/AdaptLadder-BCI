@@ -132,3 +132,15 @@ result ties previous at K=5 (13.09% PER), is slightly worse at K=10 (12.90% vs
 current gate does not yet turn geometry into a meaningful improvement over
 recency, but it clarifies the next modeling target: a useful override needs a
 richer confidence signal than a single nearest/previous distance ratio.
+
+T12 feasibility is now scaffolded as an optional geometry-only validation, not a
+full decoder reproduction. The official Dryad API manifest for `Data for: A
+high-performance speech neuroprosthesis` has been captured locally. The smallest
+useful archive for our question is `diagnosticBlocks.tar.gz` (about 0.57 GB),
+whereas `sentences`, `derived`, and the language-model archives are much larger
+and should be avoided unless we intentionally attempt a decoder reproduction. A
+new script, `run_t12_geometry_feasibility.py`, can inspect candidate variables in
+the diagnostic MAT files and compute session geometry, previous-session recency,
+and geometry-nearest source selection. No T12 result should be claimed until the
+diagnosticBlocks archive is downloaded and the script is run on real local MAT
+files.

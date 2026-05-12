@@ -34,6 +34,9 @@ AdaptLadder-BCI/
       t15_copyTaskData_description.csv
       btt-25-gru-pure-baseline-0-0898/
         checkpoint/              # ignored by git
+      t12_high_performance_speech/
+        dryad_file_manifest.csv
+        download_notes.md
   notebooks/
   paper/
   results/
@@ -97,6 +100,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Beginning-of-day K-shot geometry selection makes this practical: using only the first K validation trials to estimate target-session geometry, then decoding the remaining trials through a past-only selected source layer, gives 14.00% PER at K=5, 13.19% at K=10, and 12.74% at K=20. This recovers roughly 63%, 68%, and 71% of the fixed-source loss without labels or new training.
 - A previous-session baseline is even stronger in the K-shot setting: using the immediately previous input layer gives 13.09% PER at K=5, 12.84% at K=10, and 12.21% at K=20 on the same remaining-trial subsets. K-shot geometry selects the previous session in about 70-78% of target sessions and chooses an older source in the remaining cases, so the current conclusion is that recency is a strong baseline and geometry should be tested as a recency-aware override rather than claimed to beat recency yet.
 - A simple recency-aware override gate was tested next: default to the previous input layer and switch to the geometry-selected older source only when its covariance distance is less than alpha times the previous-source distance. This naive ratio gate does not yet beat previous-session recency in a meaningful way. At alpha=0.90 it ties previous at K=5, is slightly worse at K=10, and gives only a tiny K=20 improvement from 12.21% to 12.18% PER. This suggests future gates need richer confidence features than a single distance ratio.
+- T12 is now set up as a geometry-only feasibility validation rather than a full decoder reproduction. The Dryad manifest for `Data for: A high-performance speech neuroprosthesis` is tracked locally, and the next lightweight step is to download/extract only `diagnosticBlocks.tar.gz` into `data/raw/t12_diagnosticBlocks/` and run the T12 geometry script.
 
 ## Decoder Experiments
 
@@ -354,6 +358,62 @@ results/tables/t15_kshot_recency_geometry_override_trial_results.csv
 results/tables/t15_kshot_recency_geometry_override_session_summary.csv
 results/tables/t15_kshot_recency_geometry_override_summary.csv
 results/figures/t15_kshot_recency_geometry_override_weighted_per.png
+```
+
+## Optional T12 Feasibility
+
+T12 should stay optional and geometry-only unless the data format and checkpoint
+reproduction are quick. First write/update the official Dryad manifest:
+
+```bash
+python scripts/prepare_t12_dryad_manifest.py
+```
+
+This writes:
+
+```text
+data/external/t12_high_performance_speech/dryad_file_manifest.csv
+data/external/t12_high_performance_speech/download_notes.md
+```
+
+Then download `diagnosticBlocks.tar.gz` from the Dryad dataset and extract the
+MAT files under:
+
+```text
+data/raw/t12_diagnosticBlocks/
+```
+
+Inspect candidate neural variables:
+
+```bash
+python scripts/run_t12_geometry_feasibility.py \
+  --data-dir data/raw/t12_diagnosticBlocks \
+  --list-variables
+```
+
+Run the geometry-only validation:
+
+```bash
+python scripts/run_t12_geometry_feasibility.py \
+  --data-dir data/raw/t12_diagnosticBlocks \
+  --source-candidate-mode past-only \
+  --selection-metric cov_relative_fro_shift_from_source \
+  --max-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05
+```
+
+Writes:
+
+```text
+results/tables/t12_diagnostic_geometry_feature_candidates.csv
+results/tables/t12_diagnostic_geometry_session_summary.csv
+results/tables/t12_diagnostic_geometry_pairwise.csv
+results/tables/t12_diagnostic_geometry_source_selection.csv
+results/tables/t12_diagnostic_geometry_recency_summary.csv
+results/figures/t12_diagnostic_geometry_distance_vs_days.png
+results/figures/t12_diagnostic_selected_source_lag_histogram.png
+results/figures/t12_diagnostic_selected_source_timeline.png
 ```
 
 ## Paper draft

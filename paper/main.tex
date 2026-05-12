@@ -56,6 +56,11 @@ adaptation audit:
     second dataset, without claiming T12 decoder replication.
 \end{itemize}
 
+We do not claim that neural drift geometry is new. Rather, we show that in a
+deployed-style brain-to-text decoder with learned day-specific input layers,
+short-window geometry is actionable for choosing among existing input-layer
+states and for framing recency as an explicit adaptation prior.
+
 \section{Related Work}
 Intracortical communication BCIs have advanced rapidly from handwriting-based
 brain-to-text decoding~\cite{willett2021handwriting,fan2023corp} to speech
@@ -69,11 +74,11 @@ geometry. Manifold-alignment methods can stabilize fixed decoders by aligning
 low-dimensional neural activity across recording instabilities~\cite{degenhart2020stabilization},
 and recent dynamics-aware approaches such as NoMAD use temporal structure to
 perform unsupervised alignment over weeks to months~\cite{karpowicz2025nomad}.
-In speech BCI specifically, adversarial session-invariant learning has recently
-been proposed to reduce session-specific information while preserving phoneme
-decoding structure~\cite{zhang2026align}. Continual recalibration with
-pseudo-labels provides a complementary route, using language-model corrections to
-update communication decoders online~\cite{fan2023corp}.
+In speech BCI specifically, a recent preprint proposes adversarial
+session-invariant learning to reduce session-specific information while
+preserving phoneme decoding structure~\cite{zhang2026align}. Continual
+recalibration with pseudo-labels provides a complementary route, using
+language-model corrections to update communication decoders online~\cite{fan2023corp}.
 
 Our work is narrower. We do not train a new robust decoder or propose a full
 recalibration method. Instead, we audit the official T15 decoder to ask which

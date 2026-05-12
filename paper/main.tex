@@ -136,6 +136,19 @@ session. Thus temporal recency is a strong baseline; geometry currently appears
 most useful as a way to detect possible non-recent source matches rather than as
 a replacement for the previous-session rule.
 
+\subsection{A simple geometry override is not enough}
+We next test a recency-aware gate: use the previous-session input layer by
+default, and switch to the geometry-selected older source only when its
+covariance distance is less than $\alpha$ times the distance to the previous
+source. Sweeping $\alpha \in \{0.5,0.6,0.7,0.8,0.9,1.0\}$ shows that this single
+ratio gate does not yet produce a meaningful improvement over recency. At
+$\alpha=0.9$, the override ties previous-session decoding at $K=5$, is slightly
+worse at $K=10$ (12.90\% vs 12.84\%), and gives only a very small gain at
+$K=20$ (12.18\% vs 12.21\%). At $\alpha=1.0$, the rule approaches unconditional
+geometry selection and becomes worse. Thus geometry remains useful as a candidate
+override signal, but the gate needs richer confidence features than a single
+distance ratio.
+
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
 remaining error calls for stronger adaptation. These preliminary results suggest that
@@ -149,7 +162,9 @@ fixed-source loss on the rest of the session. However, the previous-session inpu
 layer is an even stronger simple baseline in this K-shot analysis. Future
 geometry-aware gates should therefore be compared against recency and may be most
 valuable when they identify sessions whose neural geometry returns to an older
-input-layer state.
+input-layer state. A first distance-ratio override gate yields only a tiny gain at
+$K=20$, so the immediate research target is not another adapter but a better
+confidence model for deciding when to override recency.
 
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC

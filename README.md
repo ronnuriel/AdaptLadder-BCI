@@ -96,6 +96,7 @@ results/figures/t15_mean_shift_heatmap.png
 - Geometry-nearest source selection is the strongest geometry-aware result so far. Choosing the closest non-native input layer by covariance geometry gives 11.38% phoneme-weighted PER when all sessions are available as candidate sources, and 13.58% PER in a stricter past-only source setting. Both are far below the fixed middle-source 22.67% PER baseline.
 - Beginning-of-day K-shot geometry selection makes this practical: using only the first K validation trials to estimate target-session geometry, then decoding the remaining trials through a past-only selected source layer, gives 14.00% PER at K=5, 13.19% at K=10, and 12.74% at K=20. This recovers roughly 63%, 68%, and 71% of the fixed-source loss without labels or new training.
 - A previous-session baseline is even stronger in the K-shot setting: using the immediately previous input layer gives 13.09% PER at K=5, 12.84% at K=10, and 12.21% at K=20 on the same remaining-trial subsets. K-shot geometry selects the previous session in about 70-78% of target sessions and chooses an older source in the remaining cases, so the current conclusion is that recency is a strong baseline and geometry should be tested as a recency-aware override rather than claimed to beat recency yet.
+- A simple recency-aware override gate was tested next: default to the previous input layer and switch to the geometry-selected older source only when its covariance distance is less than alpha times the previous-source distance. This naive ratio gate does not yet beat previous-session recency in a meaningful way. At alpha=0.90 it ties previous at K=5, is slightly worse at K=10, and gives only a tiny K=20 improvement from 12.21% to 12.18% PER. This suggests future gates need richer confidence features than a single distance ratio.
 
 ## Decoder Experiments
 
@@ -333,6 +334,26 @@ results/tables/t15_kshot_previous_vs_geometry_session_comparison.csv
 results/figures/t15_selected_source_lag_histogram.png
 results/figures/t15_previous_vs_geometry_per.png
 results/figures/t15_selected_source_timeline.png
+```
+
+Recency-aware geometry override:
+
+```bash
+python scripts/analyze_t15_recency_geometry_override.py \
+  --calibration-trials 5 10 20 \
+  --alpha 0.5 0.6 0.7 0.8 0.9 1.0 \
+  --max-source-frames 60000
+```
+
+Writes:
+
+```text
+results/tables/t15_kshot_recency_geometry_override_pairwise.csv
+results/tables/t15_kshot_recency_geometry_override_decisions.csv
+results/tables/t15_kshot_recency_geometry_override_trial_results.csv
+results/tables/t15_kshot_recency_geometry_override_session_summary.csv
+results/tables/t15_kshot_recency_geometry_override_summary.csv
+results/figures/t15_kshot_recency_geometry_override_weighted_per.png
 ```
 
 ## Paper draft

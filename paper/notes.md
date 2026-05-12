@@ -120,3 +120,15 @@ temporal recency is itself a strong source-selection heuristic, while geometry
 reveals occasional returns to older neural/input-layer states and should be
 developed as a recency-aware override or gate rather than presented as already
 better than recency.
+
+A first recency-aware override gate was tested with the rule: use the previous
+input layer by default, but switch to the K-shot geometry-selected source when
+its covariance distance is less than alpha times the previous-source distance.
+Sweeping alpha = 0.5, 0.6, 0.7, 0.8, 0.9, and 1.0 shows that this simple ratio
+gate is too conservative below 0.9 and too permissive at 1.0. At alpha=0.9 it
+uses no overrides at K=5, one override at K=10, and two overrides at K=20. The
+result ties previous at K=5 (13.09% PER), is slightly worse at K=10 (12.90% vs
+12.84%), and gives only a tiny improvement at K=20 (12.18% vs 12.21%). Thus the
+current gate does not yet turn geometry into a meaningful improvement over
+recency, but it clarifies the next modeling target: a useful override needs a
+richer confidence signal than a single nearest/previous distance ratio.

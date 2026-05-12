@@ -1,9 +1,84 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[codz]
 *.pyc
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Type checkers and linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# IDEs and OS files
 .DS_Store
 .idea/
-.ipynb_checkpoints/
-.env
+.vscode/
+
+# Project-local generated or heavyweight assets
 external_repos/
 data/raw/
 data/processed/
@@ -20,7 +95,14 @@ data/external/link_dandi/nwb_subset/
 *.pptx
 results/
 notebooks/results/
+
+# Legacy exploratory artifacts kept locally, not in the clean paper repo
 notebooks/01_good_bad_mixed_drift_pipeline_v5_final_summary_table.ipynb
 notebooks/02_t15_real_data_gru_baseline_notebook.ipynb
 notebooks/03_link_dataset_sanity_and_drift.ipynb
 notebooks/slightly_tidy_version_Mamba_GRU_LISA_Ensemble_with_TTA_*.ipynb
+
+# Misc
+tempCodeRunnerFile.py
+.pypirc
+__pypackages__/

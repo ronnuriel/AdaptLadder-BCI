@@ -5,7 +5,7 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 
-\title{How Much Adaptation Is Enough?\\Lightweight Drift Correction for Brain-to-Text BCI}
+\title{How Much Adaptation Is Enough?\\Drift Geometry and Minimal Calibration in Brain-to-Text BCI}
 \author{AdaptLadder-BCI}
 \date{}
 
@@ -14,16 +14,19 @@
 
 \begin{abstract}
 Brain-to-text BCI decoders are vulnerable to cross-session changes in neural feature
-distributions. This short paper studies lightweight input adaptation as a first-line
-response to session drift. We quantify drift across T15 copy-task sessions, test simple
-normalization and moment-matching corrections, and identify when stronger adaptation
-may be necessary.
+distributions. This short paper probes how much input adaptation is needed when a
+pretrained brain-to-text decoder is forced across sessions. Using the official T15
+GRU baseline, we show that native day-specific input layers reproduce low validation
+phoneme error, while non-native input layers cause large decoder-facing degradation.
+Simple moment corrections fail to recover this loss, learned small-calibration
+adapters recover only a modest fraction, and recovery depends on drift geometry.
 \end{abstract}
 
 \section{Introduction}
 Cross-session drift can degrade BCI decoder reliability and increase recalibration
 burden. Rather than immediately changing decoder weights, we ask how far simple
-input-space corrections can go.
+input-space corrections can go, and when the geometry of the drift suggests that
+stronger adaptation is needed.
 
 \section{Related Work}
 To be filled with brain-to-text BCI, neural decoder adaptation, test-time adaptation,
@@ -35,21 +38,62 @@ session counts, trial counts, trial lengths, feature dimensionality, and availab
 labels/splits.
 
 \section{Methods}
-\subsection{Drift metrics}
-For each session we estimate feature-wise mean, standard deviation, and diagonal
-covariance. We report distance from the first session and from the previous session.
+\subsection{Decoder-facing stress test}
+We evaluate the official T15 GRU checkpoint on the validation split using greedy CTC
+phoneme decoding. The native-day condition sends each session through its own learned
+day-specific input layer. The cross-day condition sends all target sessions through a
+fixed non-native source input layer before the frozen GRU and output head.
 
 \subsection{Adaptation ladder}
-We compare no adaptation, target-session z-scoring, and source-to-target moment
-matching. Decoder-based metrics are planned as the main performance endpoint.
+We compare no correction, target-session z-scoring, source moment matching,
+supervised diagonal affine calibration, and supervised input-layer calibration.
+Calibration methods use the first $K$ labeled validation trials from each target
+session and are evaluated only on the remaining trials.
+
+\subsection{Drift geometry}
+For each target session relative to the middle source session, we estimate temporal
+distance, mean and scale shifts, covariance/CORAL-style distances, and PCA subspace
+distances. We correlate these metrics with cross-day PER and with the recovered
+fraction of the native-day performance gap.
 
 \section{Results}
-Initial results will include T15 dataset summary, drift-over-time, PCA session maps,
-and adaptation before/after metrics.
+\subsection{Native-day decoding is reproduced}
+The official checkpoint reaches 9.06\% phoneme-weighted PER on the T15 validation
+split in the native-day condition, confirming that the local probe reproduces the
+expected decoder behavior.
+
+\subsection{Cross-day input mismatch breaks the decoder}
+Forcing all sessions through non-native input layers raises phoneme-weighted PER to
+22.67--34.43\% across middle, early, and late source choices. The middle source
+`t15.2023.11.26' gives 22.67\% PER, while early and late sources give 28.81\% and
+34.43\%. All three source choices harm 40/41 validation sessions.
+
+\subsection{Moment correction is not enough}
+Using the middle source, no correction gives 22.67\% PER. Target z-scoring gives
+22.75\% PER and source moment matching gives 22.73\% PER. Thus full-session
+unsupervised mean/variance alignment does not recover the cross-day loss.
+
+\subsection{Small learned calibration recovers only a modest fraction}
+With first-$K$ calibration and five training epochs, diagonal affine calibration
+improves weighted PER from 21.51\% to 20.21\% at $K=20$, recovering about 10.1\% of
+the native-day gap. Full input-layer calibration gives a similar 20.27\% PER at
+$K=20$, recovering about 9.7\%. These gains are consistent but modest.
+
+\subsection{Drift geometry predicts degradation and recovery}
+Temporal and covariance/CORAL-style distances from the source strongly predict
+cross-day PER. For example, cross-day PER has Spearman $\rho \approx 0.86$--0.87
+with absolute days and relative covariance shift at $K=5/10$ subsets
+(permutation $p=0.001$), and $\rho \approx 0.77$ at $K=20$. Recovery is weaker and
+more variable, but input-layer recovery at $K=5$ decreases with distance
+($\rho=-0.49$ for absolute days, $p=0.003$; $\rho=-0.43$ for covariance shift,
+$p=0.009$). A covariance-distance median split shows higher input-layer recovery
+for near sessions at $K=5$ and $K=20$, while $K=10$ is mixed.
 
 \section{Discussion}
 The central question is whether lightweight correction is enough, and when the
-remaining error calls for stronger adaptation.
+remaining error calls for stronger adaptation. These preliminary results suggest that
+moment-based correction is too weak, small learned adapters recover some loss, and
+drift geometry may help choose the next rung of the adaptation ladder.
 
 \section{Limitations}
 Distribution alignment alone is not a sufficient performance metric. WER, PER, CTC
@@ -58,6 +102,9 @@ paper.
 
 \section{Conclusion}
 Adaptation ladders can provide a practical way to decide how much correction a
-brain-to-text BCI session needs before moving to heavier recalibration.
+brain-to-text BCI session needs before moving to heavier recalibration. The current
+T15 results support a geometry-aware version of this ladder: easy sessions may need
+only small input calibration, while geometrically distant sessions likely require a
+stronger adapter or renewed supervised recalibration.
 
 \end{document}

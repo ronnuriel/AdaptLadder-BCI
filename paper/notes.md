@@ -51,11 +51,25 @@ while remaining far from native day-specific adaptation.
 Recovery-geometry analysis was added to connect the adaptation results with the
 shape of cross-session drift. Using sampled train frames relative to the middle
 `t15.2023.11.26` source, temporal distance and covariance/CORAL-style distance
-are strongly associated with cross-day PER (Spearman correlations around
-0.75-0.87 across K subsets). Input-layer recovery is weaker for sessions that
-are farther away in time or covariance/subspace geometry; for example, K=5
-input-layer recovery has Spearman correlations of -0.49 with absolute days from
-source and -0.43 with relative covariance shift. This supports the emerging
-interpretation that small adapters help most when the target session remains
-geometrically close enough to the source, while larger drift may require a
-stronger adaptation level.
+are strongly associated with cross-day PER. For example, cross-day mean PER has
+Spearman rho = 0.87 with absolute days from source at K=5 and K=10
+(permutation p = 0.001; bootstrap 95% CIs roughly 0.73-0.93 and 0.72-0.93).
+Relative covariance/CORAL distance is similarly predictive, with rho around
+0.86 at K=5/10 and 0.77 at K=20.
+
+Recoverability is weaker and more variable than degradation, but it also shows
+a geometry signal. Input-layer recovery at K=5 is negatively associated with
+distance from source: rho = -0.49 for absolute days (p = 0.003; bootstrap 95%
+CI -0.70 to -0.19) and rho = -0.43 for relative covariance shift (p = 0.009;
+bootstrap 95% CI -0.63 to -0.17). At K=20 the same direction remains but is not
+significant in this small subset (rho = -0.34 for days, p = 0.089; rho = -0.29
+for covariance, p = 0.154).
+
+A median split by relative covariance distance gives an interpretable near/far
+check. For K=5 input-layer calibration recovers 19.8% of the native-day gap in
+near sessions versus 6.3% in far sessions, improving 18/19 near sessions and
+16/20 far sessions. For K=20 the near group also has higher recovery fraction
+(14.6% vs 10.3%), while K=10 is mixed. The important takeaway is therefore not
+that a single threshold perfectly gates adaptation, but that drift geometry
+strongly predicts decoder degradation and provides a measurable signal about
+when small adapters are likely to help.

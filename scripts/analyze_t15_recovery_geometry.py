@@ -223,7 +223,74 @@ def join_recovery_and_geometry(
     return joined.sort_values(["calibration_trials", "date"]).reset_index(drop=True)
 
 
-def correlation_table(joined: pd.DataFrame) -> pd.DataFrame:
+def _corr_1d(x: np.ndarray, y: np.ndarray) -> float:
+    if len(x) < 3 or np.std(x) == 0 or np.std(y) == 0:
+        return np.nan
+    return float(np.corrcoef(x, y)[0, 1])
+
+
+def _spearman_1d(x: np.ndarray, y: np.ndarray) -> float:
+    x_rank = pd.Series(x).rank(method="average").to_numpy()
+    y_rank = pd.Series(y).rank(method="average").to_numpy()
+    return _corr_1d(x_rank, y_rank)
+
+
+def permutation_p_value(
+    x: np.ndarray,
+    y: np.ndarray,
+    observed: float,
+    rng: np.random.Generator,
+    n_permutations: int,
+    method: str,
+) -> float:
+    if n_permutations <= 0 or not np.isfinite(observed):
+        return np.nan
+
+    hits = 0
+    for _ in range(n_permutations):
+        shuffled = rng.permutation(y)
+        if method == "spearman":
+            value = _spearman_1d(x, shuffled)
+        else:
+            value = _corr_1d(x, shuffled)
+        if np.isfinite(value) and abs(value) >= abs(observed):
+            hits += 1
+    return float((hits + 1) / (n_permutations + 1))
+
+
+def bootstrap_ci(
+    x: np.ndarray,
+    y: np.ndarray,
+    rng: np.random.Generator,
+    n_bootstrap: int,
+    method: str,
+    alpha: float = 0.05,
+) -> tuple[float, float]:
+    if n_bootstrap <= 0 or len(x) < 4:
+        return np.nan, np.nan
+
+    values = []
+    n = len(x)
+    for _ in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        if method == "spearman":
+            value = _spearman_1d(x[idx], y[idx])
+        else:
+            value = _corr_1d(x[idx], y[idx])
+        if np.isfinite(value):
+            values.append(value)
+    if not values:
+        return np.nan, np.nan
+    low, high = np.quantile(values, [alpha / 2, 1 - alpha / 2])
+    return float(low), float(high)
+
+
+def correlation_table(
+    joined: pd.DataFrame,
+    rng: np.random.Generator,
+    n_bootstrap: int,
+    n_permutations: int,
+) -> pd.DataFrame:
     geometry_cols = [
         "abs_days_from_source",
         "mean_shift_from_source",
@@ -257,17 +324,102 @@ def correlation_table(joined: pd.DataFrame) -> pd.DataFrame:
                 pair = frame[[metric, outcome]].replace([np.inf, -np.inf], np.nan).dropna()
                 if len(pair) < 3:
                     continue
+                x = pair[metric].to_numpy(dtype=float)
+                y = pair[outcome].to_numpy(dtype=float)
+                pearson_r = _corr_1d(x, y)
+                spearman_r = _spearman_1d(x, y)
+                pearson_low, pearson_high = bootstrap_ci(x, y, rng, n_bootstrap, method="pearson")
+                spearman_low, spearman_high = bootstrap_ci(x, y, rng, n_bootstrap, method="spearman")
                 rows.append(
                     {
                         "calibration_trials": int(k) if pd.notna(k) else np.nan,
                         "geometry_metric": metric,
                         "outcome": outcome,
                         "n": int(len(pair)),
-                        "pearson_r": float(pair[metric].corr(pair[outcome], method="pearson")),
-                        "spearman_r": float(pair[metric].corr(pair[outcome], method="spearman")),
+                        "pearson_r": pearson_r,
+                        "pearson_p_permutation": permutation_p_value(
+                            x, y, pearson_r, rng, n_permutations, method="pearson"
+                        ),
+                        "pearson_bootstrap_low": pearson_low,
+                        "pearson_bootstrap_high": pearson_high,
+                        "spearman_r": spearman_r,
+                        "spearman_p_permutation": permutation_p_value(
+                            x, y, spearman_r, rng, n_permutations, method="spearman"
+                        ),
+                        "spearman_bootstrap_low": spearman_low,
+                        "spearman_bootstrap_high": spearman_high,
                     }
                 )
     return pd.DataFrame(rows).sort_values(["calibration_trials", "outcome", "spearman_r"], ascending=[True, True, False])
+
+
+def near_far_table(joined: pd.DataFrame) -> pd.DataFrame:
+    split_metrics = [
+        "cov_relative_fro_shift_from_source",
+        "abs_days_from_source",
+        "mean_principal_angle_deg",
+    ]
+    methods = {
+        "moment_match": "moment_match",
+        "diagonal_affine": "diagonal_affine",
+        "input_layer": "input_layer",
+    }
+    rows = []
+    for k, k_frame in joined.groupby("calibration_trials", dropna=False):
+        for split_metric in split_metrics:
+            if split_metric not in k_frame:
+                continue
+            threshold = float(k_frame[split_metric].replace([np.inf, -np.inf], np.nan).median())
+            for method, prefix in methods.items():
+                recovery_col = f"{prefix}_recovery_fraction"
+                gain_col = f"{prefix}_gain_mean_PER"
+                harmed_col = f"{prefix}_harmed"
+                method_per_col = {
+                    "moment_match": "affine_moment_match_to_source_mean_PER",
+                    "diagonal_affine": "affine_diagonal_affine_mean_PER",
+                    "input_layer": "input_layer_input_layer_mean_PER",
+                }[method]
+                needed = [
+                    split_metric,
+                    recovery_col,
+                    gain_col,
+                    "calib_none_mean_PER",
+                    "calib_native_mean_PER",
+                    method_per_col,
+                ]
+                if not all(col in k_frame for col in needed):
+                    continue
+                valid = k_frame[needed + ([harmed_col] if harmed_col in k_frame else [])].replace(
+                    [np.inf, -np.inf], np.nan
+                ).dropna(subset=[split_metric, recovery_col, gain_col, "calib_none_mean_PER", method_per_col])
+                if valid.empty:
+                    continue
+                for group_name, group_frame in [
+                    ("near", valid[valid[split_metric] <= threshold]),
+                    ("far", valid[valid[split_metric] > threshold]),
+                ]:
+                    if group_frame.empty:
+                        continue
+                    rows.append(
+                        {
+                            "calibration_trials": int(k) if pd.notna(k) else np.nan,
+                            "split_metric": split_metric,
+                            "split_threshold": threshold,
+                            "distance_group": group_name,
+                            "method": method,
+                            "n_sessions": int(len(group_frame)),
+                            "mean_native_PER": float(group_frame["calib_native_mean_PER"].mean()),
+                            "mean_cross_day_none_PER": float(group_frame["calib_none_mean_PER"].mean()),
+                            "mean_method_PER": float(group_frame[method_per_col].mean()),
+                            "mean_gain_PER": float(group_frame[gain_col].mean()),
+                            "median_gain_PER": float(group_frame[gain_col].median()),
+                            "mean_recovery_fraction": float(group_frame[recovery_col].mean()),
+                            "median_recovery_fraction": float(group_frame[recovery_col].median()),
+                            "sessions_improved_vs_none": int((group_frame[gain_col] > 0).sum()),
+                            "sessions_harmed_vs_none": int((group_frame[gain_col] < 0).sum()),
+                        }
+                    )
+    return pd.DataFrame(rows).sort_values(["split_metric", "calibration_trials", "method", "distance_group"])
 
 
 def scatter_by_k(joined: pd.DataFrame, x_col: str, y_col: str, output_path: Path, title: str, ylabel: str) -> None:
@@ -289,6 +441,64 @@ def scatter_by_k(joined: pd.DataFrame, x_col: str, y_col: str, output_path: Path
     plt.close(fig)
 
 
+def plot_near_far_recovery(near_far: pd.DataFrame, output_path: Path) -> None:
+    plot_frame = near_far[
+        (near_far["split_metric"] == "cov_relative_fro_shift_from_source")
+        & (near_far["method"].isin(["diagonal_affine", "input_layer"]))
+    ].copy()
+    if plot_frame.empty:
+        return
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ks = sorted(plot_frame["calibration_trials"].dropna().unique())
+    methods = ["diagonal_affine", "input_layer"]
+    groups = ["near", "far"]
+    x = np.arange(len(ks), dtype=float)
+    width = 0.18
+
+    fig, ax = plt.subplots(figsize=(8.2, 4.8))
+    offsets = {
+        ("diagonal_affine", "near"): -1.5 * width,
+        ("diagonal_affine", "far"): -0.5 * width,
+        ("input_layer", "near"): 0.5 * width,
+        ("input_layer", "far"): 1.5 * width,
+    }
+    colors = {
+        ("diagonal_affine", "near"): "#6baed6",
+        ("diagonal_affine", "far"): "#2171b5",
+        ("input_layer", "near"): "#74c476",
+        ("input_layer", "far"): "#238b45",
+    }
+    labels = {
+        ("diagonal_affine", "near"): "Diagonal near",
+        ("diagonal_affine", "far"): "Diagonal far",
+        ("input_layer", "near"): "Input-layer near",
+        ("input_layer", "far"): "Input-layer far",
+    }
+    for method in methods:
+        for group in groups:
+            values = []
+            for k in ks:
+                row = plot_frame[
+                    (plot_frame["calibration_trials"] == k)
+                    & (plot_frame["method"] == method)
+                    & (plot_frame["distance_group"] == group)
+                ]
+                values.append(float(row["mean_recovery_fraction"].iloc[0] * 100) if not row.empty else np.nan)
+            ax.bar(x + offsets[(method, group)], values, width=width, color=colors[(method, group)], label=labels[(method, group)])
+
+    ax.axhline(0, color="0.25", linewidth=1.0)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"K={int(k)}" for k in ks])
+    ax.set_ylabel("Recovered native-day gap (%)")
+    ax.set_title("Recovery is higher for covariance-near target sessions")
+    ax.grid(axis="y", alpha=0.25)
+    ax.legend(frameon=False, ncol=2)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Join T15 drift geometry with adaptation recovery.")
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw/hdf5_data_final"))
@@ -298,6 +508,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--n-components", type=int, default=20)
     parser.add_argument("--cov-shrinkage", type=float, default=0.05)
+    parser.add_argument("--n-bootstrap", type=int, default=1000)
+    parser.add_argument("--n-permutations", type=int, default=1000)
     parser.add_argument("--native-summary", type=Path, default=Path("results/tables/t15_decoder_probe_session_summary.csv"))
     parser.add_argument(
         "--cross-summary",
@@ -324,8 +536,14 @@ def main() -> None:
         type=Path,
         default=Path("results/tables/t15_recovery_geometry_correlations.csv"),
     )
+    parser.add_argument(
+        "--output-near-far",
+        type=Path,
+        default=Path("results/tables/t15_recovery_geometry_near_far.csv"),
+    )
     parser.add_argument("--figures-dir", type=Path, default=Path("results/figures"))
     args = parser.parse_args()
+    rng = np.random.default_rng(args.seed)
 
     sessions = discover_eval_sessions(args.data_dir, split="val")
     if args.source_session not in sessions:
@@ -348,13 +566,21 @@ def main() -> None:
         affine_summary_path=args.affine_summary,
         input_layer_summary_path=args.input_layer_summary,
     )
-    correlations = correlation_table(joined)
+    correlations = correlation_table(
+        joined,
+        rng=rng,
+        n_bootstrap=args.n_bootstrap,
+        n_permutations=args.n_permutations,
+    )
+    near_far = near_far_table(joined)
 
     args.output_joined.parent.mkdir(parents=True, exist_ok=True)
     args.output_correlations.parent.mkdir(parents=True, exist_ok=True)
+    args.output_near_far.parent.mkdir(parents=True, exist_ok=True)
     args.figures_dir.mkdir(parents=True, exist_ok=True)
     joined.to_csv(args.output_joined, index=False)
     correlations.to_csv(args.output_correlations, index=False)
+    near_far.to_csv(args.output_near_far, index=False)
 
     scatter_by_k(
         joined,
@@ -380,14 +606,27 @@ def main() -> None:
         title="Input-layer recovery vs temporal distance",
         ylabel="Input-layer recovered gap (%)",
     )
+    plot_near_far_recovery(
+        near_far,
+        output_path=args.figures_dir / "t15_near_far_recovery_by_covariance.png",
+    )
 
     print(f"Wrote {args.output_joined}")
     print(f"Wrote {args.output_correlations}")
+    print(f"Wrote {args.output_near_far}")
     print(f"Wrote {args.figures_dir / 't15_recovery_vs_subspace_angle.png'}")
     print(f"Wrote {args.figures_dir / 't15_recovery_vs_cross_day_per.png'}")
     print(f"Wrote {args.figures_dir / 't15_recovery_vs_time_distance.png'}")
+    print(f"Wrote {args.figures_dir / 't15_near_far_recovery_by_covariance.png'}")
     focus = correlations[correlations["outcome"].isin(["input_layer_recovery_fraction", "diagonal_affine_recovery_fraction"])]
     print(focus.sort_values("spearman_r", key=lambda s: s.abs(), ascending=False).head(20).to_string(index=False))
+    print()
+    print(
+        near_far[
+            (near_far["split_metric"] == "cov_relative_fro_shift_from_source")
+            & (near_far["method"].isin(["diagonal_affine", "input_layer"]))
+        ].to_string(index=False)
+    )
 
 
 if __name__ == "__main__":

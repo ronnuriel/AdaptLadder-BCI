@@ -83,7 +83,54 @@ results/figures/t15_mean_shift_heatmap.png
 - T15 local HDF5 data is present.
 - Dataset sanity summary generation works.
 - Train-split drift metrics and figures generation works.
-- Decoder-facing WER/PER/CTC evaluation is the next important missing piece.
+- Decoder-facing greedy PER evaluation works with the official GRU checkpoint.
+- Native-day validation reaches 9.06% phoneme-weighted PER.
+- Cross-day stress with source `t15.2023.08.13` reaches 28.81% phoneme-weighted PER and harms 40/41 sessions.
+- A three-source sweep gives 28.81% PER for early, 22.67% for middle, and 34.43% for late source layers; each harms 40/41 sessions.
+
+## Decoder Experiments
+
+Native-day:
+
+```bash
+python scripts/run_t15_decoder_probe.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --mode native-day \
+  --gpu-number -1
+```
+
+Cross-day source sweep:
+
+```bash
+python scripts/run_t15_decoder_probe.py \
+  --eval-type val \
+  --mode cross-day \
+  --source-session t15.2023.08.13 \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_decoder_probe_cross_day_source_2023_08_13_val.csv \
+  --output-summary results/tables/t15_decoder_probe_cross_day_source_2023_08_13_session_summary.csv
+
+python scripts/run_t15_decoder_probe.py \
+  --eval-type val \
+  --mode cross-day \
+  --source-session t15.2023.11.26 \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_decoder_probe_cross_day_source_2023_11_26_val.csv \
+  --output-summary results/tables/t15_decoder_probe_cross_day_source_2023_11_26_session_summary.csv
+
+python scripts/run_t15_decoder_probe.py \
+  --eval-type val \
+  --mode cross-day \
+  --source-session t15.2025.04.13 \
+  --gpu-number -1 \
+  --output-trials results/tables/t15_decoder_probe_cross_day_source_2025_04_13_val.csv \
+  --output-summary results/tables/t15_decoder_probe_cross_day_source_2025_04_13_session_summary.csv
+
+python scripts/plot_t15_source_sweep.py
+```
 
 ## Paper draft
 

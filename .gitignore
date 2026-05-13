@@ -107,6 +107,7 @@ data/external/*/training_log
 *.pptx
 results/
 notebooks/results/
+logs/
 
 # Legacy exploratory artifacts kept locally, not in the clean paper repo
 notebooks/01_good_bad_mixed_drift_pipeline_v5_final_summary_table.ipynb

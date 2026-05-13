@@ -193,6 +193,19 @@ python scripts/analyze_t15_recency_geometry_override.py \
   --max-source-frames 60000
 ```
 
+Input-state library-size ablation:
+
+```bash
+python scripts/run_t15_library_size_ablation.py \
+  --calibration-trials 5 10 20 \
+  --library-sizes 1 3 5 all \
+  --selection-metric cov_relative_fro_shift_from_source \
+  --max-source-frames 60000 \
+  --n-components 20 \
+  --cov-shrinkage 0.05 \
+  --gpu-number -1
+```
+
 ## 7. Optional T12 Geometry-Only Check
 
 Prepare the Dryad manifest:
@@ -218,6 +231,27 @@ python scripts/run_t12_geometry_feasibility.py \
   --max-frames 60000 \
   --n-components 20 \
   --cov-shrinkage 0.05
+```
+
+Feature-robustness check:
+
+```bash
+for FEAT in spikePow tx1 tx2 tx3 tx4; do
+  python scripts/run_t12_geometry_feasibility.py \
+    --data-dir data/raw/t12_diagnosticBlocks \
+    --feature-key "$FEAT" \
+    --source-candidate-mode past-only \
+    --selection-metric cov_relative_fro_shift_from_source \
+    --max-frames 60000 \
+    --n-components 20 \
+    --cov-shrinkage 0.05 \
+    --output-candidates "results/tables/t12_${FEAT}_feature_candidates.csv" \
+    --output-sessions "results/tables/t12_${FEAT}_session_summary.csv" \
+    --output-pairwise "results/tables/t12_${FEAT}_pairwise.csv" \
+    --output-selection "results/tables/t12_${FEAT}_source_selection.csv" \
+    --output-summary "results/tables/t12_${FEAT}_recency_summary.csv" \
+    --figures-dir "results/figures/t12_${FEAT}"
+done
 ```
 
 This is a geometry-only support analysis. It does not reproduce the T12 decoder.

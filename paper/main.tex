@@ -24,7 +24,8 @@ practical result is source-layer selection: using a short unlabeled
 beginning-of-day window to choose a past input layer recovers much of the
 fixed-source loss, but the immediately previous session is an even stronger
 simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks
-shows similar longitudinal structure. These results suggest that recency should
+shows similar longitudinal structure across spike-power and threshold-crossing
+features. These results suggest that recency should
 be the default adaptation prior, while drift geometry is a useful signal for
 deciding when that default may need to be overridden.
 \end{abstract}
@@ -99,9 +100,9 @@ input layer. In cross-day stress tests, target sessions use a fixed or selected
 non-native source input layer while the rest of the decoder remains unchanged.
 
 \textbf{T12 diagnostic blocks.} As a secondary check, we analyze diagnostic
-blocks from the T12 high-performance speech neuroprosthesis dataset~\cite{willett2023speech}.
-This is a geometry-only analysis of spike-power features; we do not reproduce the
-T12 decoder or report T12 PER.
+blocks from the T12 speech neuroprosthesis dataset~\cite{willett2023speech}.
+This is a geometry-only analysis of spike-power and threshold-crossing feature
+variants; we do not reproduce the T12 decoder or report T12 PER.
 
 \section{Methods}
 \subsection{Decoder-Facing Metrics}
@@ -276,6 +277,34 @@ input-layer states, use the previous session as the default, and invoke a
 recency-aware geometry gate only when the beginning-of-day neural geometry
 strongly suggests that an older state is a better match.
 
+\subsection{A Bounded Input-State Library Is Usually Enough}
+We therefore asked how large this past-state library needs to be. For each target
+session, we restricted K-shot geometry selection to the previous session, the last
+3 sessions, the last 5 sessions, or all past sessions. The immediately previous
+session remains the best aggregate policy, but a small recent library is close to
+the all-past library. At $K=20$, last-5 and all-past selection both reach
+12.74\% PER, while last-3 gives 12.76\%. Expanding the nearest-source search to
+all past layers does not improve aggregate PER over recency under this simple
+distance rule; rather, it increases the need for a confidence gate before using
+older states.
+
+\begin{table}[t]
+\centering
+\caption{K-shot input-state library-size ablation. PER is measured on remaining
+validation trials after using the first $K$ trials to estimate target geometry.
+A bounded recent library nearly matches all-past selection, while previous-only
+recency remains the strongest aggregate baseline.}
+\begin{tabular}{lcccc}
+\toprule
+$K$ & Previous & Last 3 & Last 5 & All past \\
+\midrule
+5 & 13.09\% & 13.47\% & 13.55\% & 14.00\% \\
+10 & 12.84\% & 13.19\% & 13.19\% & 13.19\% \\
+20 & 12.21\% & 12.76\% & 12.74\% & 12.74\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{A Single Distance-Ratio Override Is Too Weak}
 Since geometry sometimes chooses older sources, we tested whether a simple
 distance-ratio gate can improve over recency: keep the previous source unless the
@@ -302,10 +331,13 @@ T12 diagnostic blocks provide a secondary geometry-only check. Using spike-power
 features, covariance distance increases with temporal separation across 120
 past-source pairs (Spearman $\rho=0.44$, $p=5.4\times10^{-7}$). Geometry selects
 the immediately previous session in 8/15 target sessions and an older source in
-7/15. Some selections jump far back in time, such as a 53-day lag. This supports
-the idea that recency is important but not sufficient to describe longitudinal
-neural geometry. Because we do not run the T12 decoder, this result is only
-supporting evidence, not decoder replication.
+7/15. Some selections jump far back in time, such as a 53-day lag. This pattern
+is not limited to spike power: threshold-crossing variants tx1--tx4 also show
+positive days-distance correlations ($\rho=0.34$--$0.47$, all $p<1.3\times
+10^{-4}$) and older-source selections in 6--9 of 15 targets. This supports the
+idea that recency is important but not sufficient to describe longitudinal neural
+geometry. Because we do not run the T12 decoder, this result is only supporting
+evidence, not decoder replication.
 
 \section{Discussion}
 The main lesson is that cross-session adaptation should not be treated as a

@@ -30,8 +30,9 @@ The current conclusion is:
 | Input-layer calibration, K=20 | 20.27% PER on remaining trials; about 9.7% gap recovery |
 | K-shot geometry source selection, K=20 | 12.74% PER; about 71% fixed-source gap recovery |
 | Previous-session source, K=20 | 12.21% PER; strongest simple source baseline |
+| Library-size ablation, K=20 | Last-5 and all-past both 12.74% PER; bounded library is enough under current metric |
 | Simple geometry override | Tiny K=20 gain only; richer gate needed |
-| T12 diagnostic blocks | Geometry-only support: covariance distance increases with temporal separation |
+| T12 diagnostic blocks | Geometry-only support across spikePow and tx1-tx4 features |
 
 ## Repository Layout
 
@@ -47,6 +48,7 @@ scripts/
   run_t15_input_layer_calibration_eval.py
   run_t15_geometry_source_selection_eval.py
   run_t15_kshot_geometry_source_selection.py
+  run_t15_library_size_ablation.py
   analyze_t15_selected_sources.py
   analyze_t15_recency_geometry_override.py
   run_t12_geometry_feasibility.py
@@ -93,5 +95,5 @@ tectonic main.tex
 ## Scope
 
 T15 is the main decoder-facing result. T12 is included only as a geometry-only
-feasibility check; this repository does not claim T12 decoder or PER
+feasibility check across diagnostic feature variants; this repository does not claim T12 decoder or PER
 replication.

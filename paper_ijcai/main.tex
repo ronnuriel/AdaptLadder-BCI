@@ -76,7 +76,7 @@ For each source-target pair, we compute temporal distance, mean and scale shifts
 
 Because temporal recency is an obvious baseline, we also evaluate the immediately previous input layer. Finally, we test a simple recency-aware override: use the previous input layer by default and switch to the geometry-selected older source only if its covariance distance is less than $\alpha$ times the distance to the previous source.
 
-\section{Results}
+\section{Experiments}
 \subsection{Input-Layer Mismatch Produces Large Decoder-Facing Degradation}
 Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the local evaluation reproduces the expected behavior of the official checkpoint. When all sessions are forced through non-native source input layers, PER rises to 22.67--34.43\%, harming 40/41 sessions for each source choice.
 

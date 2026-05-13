@@ -161,12 +161,14 @@ def train_residual_adapter(
     l2_weight: float,
     grad_clip: float,
     low_rank: int,
+    calibration_batch_size: int,
 ) -> AdapterState:
     features_np = [data["neural_features"][idx].astype(np.float32, copy=False) for idx in calibration_indices]
     labels_np = [data["seq_class_ids"][idx].astype(np.int64, copy=False) for idx in calibration_indices]
     label_lengths = [int(data["seq_len"][idx]) for idx in calibration_indices]
-    features, raw_lengths = pad_features(features_np, device)
-    labels, phone_seq_lens = pad_labels(labels_np, label_lengths, device)
+    if calibration_batch_size <= 0:
+        calibration_batch_size = len(calibration_indices)
+    calibration_batch_size = min(calibration_batch_size, len(calibration_indices))
 
     for parameter in model.parameters():
         parameter.requires_grad_(False)
@@ -177,12 +179,22 @@ def train_residual_adapter(
     ctc_loss = torch.nn.CTCLoss(blank=0, reduction="none", zero_infinity=False)
 
     if method == "feature_diagonal":
-        scale = torch.nn.Parameter(torch.ones(features.shape[-1], device=device))
-        bias = torch.nn.Parameter(torch.zeros(features.shape[-1], device=device))
+        feature_dim = int(features_np[0].shape[1])
+        scale = torch.nn.Parameter(torch.ones(feature_dim, device=device))
+        bias = torch.nn.Parameter(torch.zeros(feature_dim, device=device))
         params = [scale, bias]
 
-        def forward():
-            return forward_feature_diagonal_logits(features, raw_lengths, scale, bias, source_input_layer, model, model_args, device)
+        def forward_for(batch_features: torch.Tensor, batch_lengths: torch.Tensor):
+            return forward_feature_diagonal_logits(
+                batch_features,
+                batch_lengths,
+                scale,
+                bias,
+                source_input_layer,
+                model,
+                model_args,
+                device,
+            )
 
         def regularizer():
             return torch.mean((scale - 1).square()) + torch.mean(bias.square())
@@ -191,8 +203,8 @@ def train_residual_adapter(
         bias = torch.nn.Parameter(source_bias.clone())
         params = [bias]
 
-        def forward():
-            return forward_custom_layer_logits(features, raw_lengths, source_weight, bias, model, model_args, device)
+        def forward_for(batch_features: torch.Tensor, batch_lengths: torch.Tensor):
+            return forward_custom_layer_logits(batch_features, batch_lengths, source_weight, bias, model, model_args, device)
 
         def regularizer():
             return torch.mean((bias - source_bias).square())
@@ -205,8 +217,19 @@ def train_residual_adapter(
         bias_delta = torch.nn.Parameter(torch.zeros_like(source_bias))
         params = [left, right, bias_delta]
 
-        def forward():
-            return forward_low_rank_logits(features, raw_lengths, source_weight, source_bias, left, right, bias_delta, model, model_args, device)
+        def forward_for(batch_features: torch.Tensor, batch_lengths: torch.Tensor):
+            return forward_low_rank_logits(
+                batch_features,
+                batch_lengths,
+                source_weight,
+                source_bias,
+                left,
+                right,
+                bias_delta,
+                model,
+                model_args,
+                device,
+            )
 
         def regularizer():
             return torch.mean((left @ right).square()) + torch.mean(bias_delta.square())
@@ -216,8 +239,8 @@ def train_residual_adapter(
         bias = torch.nn.Parameter(source_bias.clone())
         params = [weight, bias]
 
-        def forward():
-            return forward_custom_layer_logits(features, raw_lengths, weight, bias, model, model_args, device)
+        def forward_for(batch_features: torch.Tensor, batch_lengths: torch.Tensor):
+            return forward_custom_layer_logits(batch_features, batch_lengths, weight, bias, model, model_args, device)
 
         def regularizer():
             return torch.mean((weight - source_weight).square()) + torch.mean((bias - source_bias).square())
@@ -227,15 +250,31 @@ def train_residual_adapter(
 
     optimizer = torch.optim.Adam(params, lr=learning_rate)
 
+    def iter_batches():
+        for start in range(0, len(calibration_indices), calibration_batch_size):
+            stop = min(start + calibration_batch_size, len(calibration_indices))
+            batch_features, batch_lengths = pad_features(features_np[start:stop], device)
+            batch_labels, batch_label_lengths = pad_labels(labels_np[start:stop], label_lengths[start:stop], device)
+            yield batch_features, batch_lengths, batch_labels, batch_label_lengths
+
+    def calibration_loss() -> torch.Tensor:
+        weighted_losses = []
+        total_items = 0
+        for batch_features, batch_lengths, batch_labels, batch_label_lengths in iter_batches():
+            logits, input_lengths = forward_for(batch_features, batch_lengths)
+            batch_loss = ctc_objective(logits, input_lengths, batch_labels, batch_label_lengths, ctc_loss)
+            batch_items = int(batch_label_lengths.numel())
+            weighted_losses.append(batch_loss * batch_items)
+            total_items += batch_items
+        return torch.stack(weighted_losses).sum() / max(total_items, 1)
+
     with torch.no_grad():
-        logits, input_lengths = forward()
-        initial_loss = float(ctc_objective(logits, input_lengths, labels, phone_seq_lens, ctc_loss).detach().cpu())
+        initial_loss = float(calibration_loss().detach().cpu())
 
     for _ in range(epochs):
         model.train()
         optimizer.zero_grad(set_to_none=True)
-        logits, input_lengths = forward()
-        loss = ctc_objective(logits, input_lengths, labels, phone_seq_lens, ctc_loss)
+        loss = calibration_loss()
         if l2_weight > 0:
             loss = loss + l2_weight * regularizer()
         loss.backward()
@@ -245,8 +284,7 @@ def train_residual_adapter(
 
     model.eval()
     with torch.no_grad():
-        logits, input_lengths = forward()
-        final_loss = float(ctc_objective(logits, input_lengths, labels, phone_seq_lens, ctc_loss).detach().cpu())
+        final_loss = float(calibration_loss().detach().cpu())
 
     payload: dict[str, np.ndarray] = {}
     if method == "feature_diagonal":
@@ -359,6 +397,12 @@ def main() -> None:
     parser.add_argument("--l2-weight", type=float, default=1e-3)
     parser.add_argument("--grad-clip", type=float, default=5.0)
     parser.add_argument("--low-rank", type=int, default=8)
+    parser.add_argument(
+        "--calibration-batch-size",
+        type=int,
+        default=0,
+        help="Number of calibration trials per optimizer batch. Use 0 to fit all K trials at once.",
+    )
     parser.add_argument("--min-eval-trials", type=int, default=5)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--gpu-number", type=int, default=-1)
@@ -454,6 +498,7 @@ def main() -> None:
                         l2_weight=args.l2_weight,
                         grad_clip=args.grad_clip,
                         low_rank=args.low_rank,
+                        calibration_batch_size=args.calibration_batch_size,
                     )
                     adapters[method] = adapter
                     training_rows.append(

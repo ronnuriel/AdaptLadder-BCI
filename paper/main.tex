@@ -239,6 +239,12 @@ source outperforms the previous-session source in 3, 3, and 4 target sessions fo
 $K=5,10,20$, respectively. This suggests that some target sessions may resemble
 older input-layer states rather than only drifting monotonically away from the
 previous day.
+One possible explanation is that a day-specific input layer may represent a
+neural recording state rather than a purely chronological day. Changes in
+recording quality, electrode yield, thresholding, neural strategy, or user state
+could move a new session closer to an older feature geometry than to the
+immediately preceding session. In this view, source selection is closer to memory
+retrieval over past input states than to choosing the most recent date.
 
 We observe the same qualitative pattern in the T12 diagnostic-block geometry
 check. Using spike-power features, geometry selects an older non-previous session

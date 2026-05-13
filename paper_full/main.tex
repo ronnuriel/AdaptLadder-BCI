@@ -297,6 +297,39 @@ Spearman correlation between geometry/previous distance ratio and older-source
 gain is weak ($\rho=0.12,-0.02,0.28$). Thus covariance geometry is useful for
 candidate retrieval, but not yet reliable as a standalone confidence measure.
 
+\subsection{Drift Fingerprints Suggest Subspace-Driven Retrieval}
+To ask why older sources sometimes beat the previous session, we compare drift
+fingerprints for target--previous pairs and target--older-source pairs. This
+analysis is preliminary because older-source wins are rare, but it reveals a
+consistent pattern: wins are better explained by subspace geometry than by
+mean/scale shifts alone. When older sources win, they reduce the mean principal
+angle relative to the previous source by 1.37$^\circ$, 1.93$^\circ$, and
+2.91$^\circ$ for $K=5,10,20$. When older sources lose, this subspace improvement
+is absent or reverses (Table~\ref{tab:drift-fingerprints}). This suggests that
+non-recent input states are useful when they better match the target neural
+subspace, supporting a drift-typing view of the adaptation ladder.
+
+\begin{table}[t]
+\centering
+\caption{Preliminary drift fingerprints for non-previous source choices.
+Negative principal-angle change means the older source is closer to the target
+subspace than the previous source.}
+\small
+\begin{tabular}{lccc}
+\toprule
+$K$ & Case & $n$ & $\Delta$ principal angle \\
+\midrule
+5 & older wins & 3 & -1.37$^\circ$ \\
+5 & older loses & 8 & -0.06$^\circ$ \\
+10 & older wins & 4 & -1.93$^\circ$ \\
+10 & older loses & 5 & +1.02$^\circ$ \\
+20 & older wins & 3 & -2.91$^\circ$ \\
+20 & older loses & 8 & +0.55$^\circ$ \\
+\bottomrule
+\end{tabular}
+\label{tab:drift-fingerprints}
+\end{table}
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.48\linewidth]{figures/t15_kshot_recency_geometry_override_weighted_per.png}
@@ -333,7 +366,7 @@ The main lesson is that cross-session adaptation should not be treated as a sing
 
 The most useful low-cost intervention is not a new adapter, but a better choice of existing input layer. A short unlabeled beginning-of-day window is enough to choose a past layer that recovers much of the fixed-source loss. Yet the strongest simple policy is often even simpler: use the previous session. This changes the adaptation ladder. Recency should be the default prior; geometry should be used as an additional signal for detecting when the previous session is not the right source. This also suggests a practical memory mechanism: instead of overwriting old session adapters, the system should retain a library of past input-layer states and learn when the current session has returned to one of them.
 
-The failed distance-ratio override is also informative. It shows that geometry is not automatically a better policy than recency. A future gate should likely use multiple confidence features: distance margin, previous-source rank, temporal gap, session quality, decoder confidence, and perhaps hidden-state or logit-space diagnostics.
+The failed distance-ratio override is also informative. It shows that geometry is not automatically a better policy than recency. The drift-fingerprint analysis suggests that the next gate should not rely only on covariance distance; subspace mismatch appears more informative for deciding when an older state is worth retrieving. A future gate should likely combine subspace features with distance margin, previous-source rank, temporal gap, session quality, decoder confidence, and perhaps hidden-state or logit-space diagnostics.
 
 The library-size ablation further suggests that memory need not be unbounded.
 Under the current covariance-nearest rule, last-5 selection matches all-past

@@ -117,6 +117,18 @@ def compute_session_stats(file_path: Path) -> tuple[np.ndarray, np.ndarray, int]
     return compute_stats_from_trials(features)
 
 
+def load_geometry_source_map(selection_path: Path) -> dict[tuple[int, str], str]:
+    selection = pd.read_csv(selection_path)
+    required = {"calibration_trials", "target_session", "source_session"}
+    missing = required - set(selection.columns)
+    if missing:
+        raise ValueError(f"{selection_path} is missing required columns: {sorted(missing)}")
+    return {
+        (int(row.calibration_trials), str(row.target_session)): str(row.source_session)
+        for row in selection.itertuples(index=False)
+    }
+
+
 def pad_features(features: list[np.ndarray], device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
     max_len = max(x.shape[0] for x in features)
     feature_dim = features[0].shape[1]
@@ -480,7 +492,19 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw/hdf5_data_final"))
     parser.add_argument("--csv-path", type=Path, default=Path("data/external/t15_copyTaskData_description.csv"))
     parser.add_argument("--eval-type", choices=["val"], default="val")
-    parser.add_argument("--source-session", required=True)
+    parser.add_argument("--source-session", default=None)
+    parser.add_argument(
+        "--source-policy",
+        choices=["fixed", "previous", "geometry"],
+        default="fixed",
+        help="Which source input layer initializes cross-day decoding/calibration. Defaults to the original fixed source.",
+    )
+    parser.add_argument(
+        "--geometry-selection-path",
+        type=Path,
+        default=Path("results/tables/t15_kshot_geometry_source_selection.csv"),
+        help="K-shot source-selection table used when --source-policy geometry.",
+    )
     parser.add_argument("--calibration-trials", nargs="+", type=int, default=[5, 10, 20])
     parser.add_argument("--methods", nargs="+", choices=METHOD_ORDER, default=METHOD_ORDER)
     parser.add_argument("--epochs", type=int, default=5)
@@ -523,11 +547,36 @@ def main() -> None:
 
     b2txt_csv_df = pd.read_csv(args.csv_path)
     sessions = list(model_args["dataset"]["sessions"])
-    if args.source_session not in sessions:
+    if args.source_policy == "fixed":
+        if args.source_session is None:
+            raise ValueError("--source-session is required when --source-policy fixed.")
+        if args.source_session not in sessions:
+            raise ValueError(f"Unknown source session {args.source_session!r}")
+    elif args.source_session is not None and args.source_session not in sessions:
         raise ValueError(f"Unknown source session {args.source_session!r}")
-    source_input_layer = sessions.index(args.source_session)
-    source_stats_file = args.data_dir / args.source_session / f"data_{args.eval_type}.hdf5"
-    source_mean, source_std, source_n_frames = compute_session_stats(source_stats_file)
+
+    geometry_source_map = load_geometry_source_map(args.geometry_selection_path) if args.source_policy == "geometry" else {}
+    source_stats_cache: dict[str, tuple[np.ndarray, np.ndarray, int]] = {}
+
+    def get_source_stats(source_session: str) -> tuple[np.ndarray, np.ndarray, int] | None:
+        if source_session not in source_stats_cache:
+            source_stats_file = args.data_dir / source_session / f"data_{args.eval_type}.hdf5"
+            if not source_stats_file.exists():
+                return None
+            source_stats_cache[source_session] = compute_session_stats(source_stats_file)
+        return source_stats_cache[source_session]
+
+    def choose_source_session(k: int, session: str) -> str | None:
+        if args.source_policy == "fixed":
+            return args.source_session
+        session_idx = sessions.index(session)
+        if args.source_policy == "previous":
+            if session_idx == 0:
+                return None
+            return sessions[session_idx - 1]
+        if args.source_policy == "geometry":
+            return geometry_source_map.get((int(k), session))
+        raise ValueError(f"Unknown source policy {args.source_policy!r}")
 
     eval_sessions = []
     for session in sessions:
@@ -543,6 +592,14 @@ def main() -> None:
     with tqdm(total=total_sessions, desc="input-layer calibration", unit="session-K") as progress:
         for k in sorted(args.calibration_trials):
             for session, eval_file in eval_sessions:
+                source_session = choose_source_session(k, session)
+                if source_session is None:
+                    progress.update(1)
+                    continue
+                if source_session not in sessions:
+                    raise ValueError(f"Unknown selected source session {source_session!r} for target {session!r}.")
+                source_input_layer = sessions.index(source_session)
+                source_stats = get_source_stats(source_session)
                 data = load_h5py_file(str(eval_file), b2txt_csv_df)
                 n_trials = len(data["neural_features"])
                 if n_trials <= k + args.min_eval_trials:
@@ -553,6 +610,10 @@ def main() -> None:
                 evaluation_indices = list(range(k, n_trials))
                 target_features = [data["neural_features"][idx] for idx in calibration_indices]
                 target_mean, target_std, target_n_frames = compute_stats_from_trials(target_features)
+                if source_stats is None:
+                    source_mean, source_std, source_n_frames = target_mean, target_std, 0
+                else:
+                    source_mean, source_std, source_n_frames = source_stats
                 native_input_layer = sessions.index(session)
 
                 adapter = train_input_layer_adapter(
@@ -570,7 +631,8 @@ def main() -> None:
                 training_rows.append(
                     {
                         "session": session,
-                        "source_session": args.source_session,
+                        "source_session": source_session,
+                        "source_policy": args.source_policy,
                         "calibration_trials": k,
                         "initial_ctc_loss": adapter.initial_loss,
                         "final_ctc_loss": adapter.final_loss,
@@ -607,7 +669,7 @@ def main() -> None:
                                 model_args,
                                 device,
                             )
-                            input_layer_session = f"{args.source_session}+input_layer_calibrated"
+                            input_layer_session = f"{source_session}+input_layer_calibrated"
                         else:
                             logits_t, input_lengths_t = forward_fixed_layer_logits(
                                 eval_input,
@@ -632,7 +694,7 @@ def main() -> None:
                                 "session": session,
                                 "block": int(data["block_num"][trial_idx]),
                                 "trial": int(data["trial_num"][trial_idx]),
-                                "source_session": args.source_session,
+                                "source_session": source_session,
                                 "input_layer_session": input_layer_session,
                                 "method": method,
                                 "calibration_trials": k,
@@ -668,12 +730,14 @@ def main() -> None:
     overall = build_overall_summary(trials, session_summary)
     overall.to_csv(args.output_overall, index=False)
 
-    source_label = args.source_session.replace("t15.", "")
-    plot_weighted_per(overall, args.output_weighted_figure, f"T15 input-layer calibration via source {source_label}")
-    plot_recovery(overall, args.output_recovery_figure, f"T15 recovered gap via source {source_label}")
+    source_label = args.source_session.replace("t15.", "") if args.source_session else args.source_policy
+    plot_weighted_per(overall, args.output_weighted_figure, f"T15 input-layer calibration via {source_label}")
+    plot_recovery(overall, args.output_recovery_figure, f"T15 recovered gap via {source_label}")
 
     print(f"Loaded official GRU checkpoint on {device}.")
-    print(f"Source session: {args.source_session} (input layer {source_input_layer})")
+    print(f"Source policy: {args.source_policy}")
+    if args.source_session:
+        print(f"Source session: {args.source_session}")
     print(f"Calibration trials: {', '.join(str(k) for k in sorted(args.calibration_trials))}")
     print(f"Wrote trial-level results to {args.output_trials}")
     print(f"Wrote session summary to {args.output_summary}")

@@ -361,6 +361,37 @@ tx4 & 0.47 & 9/15 & 6/15 \\
 \label{tab:t12-features}
 \end{table}
 
+\subsection{Inner-Speech Blocks Suggest Behavior States}
+As a geometry-only extension, we also analyzed interleaved verbal-behavior blocks
+from the T12/T15/T16/T17 inner-speech dataset~\cite{kunz2025inner}. We did not
+train a decoder, evaluate PER, or attempt privacy-sensitive inner-speech
+decoding. Instead, within each participant, we grouped neural activity by speech
+behavior and split each behavior into two halves. We then asked whether
+covariance geometry retrieves the matching behavior. For binned threshold
+crossings during the go epoch, nearest-behavior accuracy was 25/26 (96.15\%),
+compared with a 20\% chance level, and between-behavior distances were 2.60
+times within-behavior distances. Spike-power features and delay-epoch threshold
+crossings also remained well above chance (Table~\ref{tab:inner-behavior}).
+These preliminary results suggest that the input-state view may extend beyond
+recording days: intended speech behavior is another axis of neural geometry.
+
+\begin{table}[t]
+\centering
+\caption{Preliminary inner-speech behavior-geometry feasibility. This analysis
+is geometry-only and does not evaluate decoding.}
+\small
+\begin{tabular}{lccc}
+\toprule
+Feat./epoch & Acc. & Chance & B/W ratio \\
+\midrule
+binnedTX / go & 96.15\% & 20\% & 2.60 \\
+spikePow / go & 84.62\% & 20\% & 2.87 \\
+binnedTX / delay & 88.46\% & 20\% & 1.59 \\
+\bottomrule
+\end{tabular}
+\label{tab:inner-behavior}
+\end{table}
+
 \section{Discussion}
 The main lesson is that cross-session adaptation should not be treated as a single fixed correction. The native T15 input layers are highly effective, and using the wrong input layer causes large decoder-facing degradation. But simple moment alignment does not emulate those layers, and learned adapters recover only part of the lost performance even when input-layer calibration is trained longer.
 
@@ -376,10 +407,13 @@ keep a small set of recent or representative input states, default to recency,
 and use geometry only when multiple signals agree that an older state is likely
 to be better.
 
-A natural extension is to test whether the input-state library view applies not only across days, but also across speech behaviors. Recent inner-speech recordings from T12, T15, T16, and T17 include attempted, imagined or inner, listening, and silent-reading tasks, and show that inner speech is represented in motor cortex with a motor-intent dimension separating attempted and inner speech~\cite{kunz2025inner}. These data could test whether a new neural geometry reflects session drift, speech-mode shift, or both. More broadly, future input-state libraries may need to index both recording state and intended speech mode.
+The inner-speech feasibility result suggests the same memory view may apply
+across behaviors. Future input-state libraries may need to index both recording
+state and intended speech mode, because a new neural geometry may reflect
+session drift, speech-mode shift, or both.
 
 \section{Limitations}
-This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark.
+This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The inner-speech analysis is also geometry-only; it does not decode imagined speech or evaluate a communication system. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark.
 
 \section{Conclusion}
 For T15 brain-to-text decoding, fixed non-native input layers break the decoder, moment correction is too weak, and learned input adaptation recovers only part of the lost performance. Most of the practical recovery comes from selecting a compatible past input layer. The immediately previous session is a strong default, while drift geometry is a measurable signal for deciding when that default may need to be overridden. This supports a recency-aware, geometry-guided adaptation ladder: start with the previous input state, measure drift geometry from a short unlabeled window, and move to stronger calibration only when the geometry indicates that simple source selection is not enough.

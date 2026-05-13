@@ -331,6 +331,16 @@ multiple confidence features: distance margin, previous-source rank, temporal
 gap, session quality, decoder confidence, and perhaps hidden-state or logit-space
 diagnostics.
 
+A natural extension is to test whether the input-state library view applies not
+only across days, but also across speech behaviors. Recent inner-speech
+recordings from T12, T15, T16, and T17 include attempted, imagined or inner,
+listening, and silent-reading tasks, and show that inner speech is represented in
+motor cortex with a motor-intent dimension separating attempted and inner
+speech~\cite{kunz2025inner}. These data could test whether a new neural geometry
+reflects session drift, speech-mode shift, or both. More broadly, future
+input-state libraries may need to index both recording state and intended speech
+mode.
+
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER
 is lighter than full WER and avoids the language-model/Redis evaluation stack.
@@ -390,6 +400,12 @@ a one-year demonstration of seamless brain-to-text communication.
 Z.~Zhang, S.~Li, B.~L. Sabatini, M.~Aoi, and G.~Mishne.
 \newblock ALIGN: Adversarial learning for generalizable speech neuroprosthesis.
 \newblock \emph{arXiv:2603.18299}, 2026.
+
+\bibitem{kunz2025inner}
+E.~M. Kunz, B.~A. Krasa, F.~Kamdar, et~al.
+\newblock Inner speech in motor cortex and implications for speech
+neuroprostheses.
+\newblock \emph{Cell}, 188(17):4658--4673.e17, 2025.
 
 \end{thebibliography}
 

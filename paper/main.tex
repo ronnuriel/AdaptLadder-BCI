@@ -230,6 +230,46 @@ still reveals non-recent source matches, indicating that sessions are not always
 closest to the immediately previous day.}
 \end{figure}
 
+\subsection{Non-Recent Matches Suggest Reusable Input States}
+The previous-session input layer is the strongest simple baseline, but it is not
+always the geometrically nearest source. In T15, K-shot geometry selection
+chooses the previous session in most targets, but selects an older non-previous
+input layer in 22--30\% of cases. Among those non-previous selections, the older
+source outperforms the previous-session source in 3, 3, and 4 target sessions for
+$K=5,10,20$, respectively. This suggests that some target sessions may resemble
+older input-layer states rather than only drifting monotonically away from the
+previous day.
+
+We observe the same qualitative pattern in the T12 diagnostic-block geometry
+check. Using spike-power features, geometry selects an older non-previous session
+in 7/15 evaluable targets. Some selections jump substantially backward in time,
+for example 2022-08-13 selecting 2022-06-21, a 53-day lag, and 2022-08-25
+selecting 2022-08-13 rather than the immediately preceding session.
+
+\begin{table}[t]
+\centering
+\caption{Evidence for non-recent source matches. These examples do not prove
+exact recurrence of neural states, but motivate maintaining a library of past
+input-layer states rather than only the most recent layer.}
+\begin{tabular}{llll}
+\toprule
+Data & Setting & Evidence & Interpretation \\
+\midrule
+T15 & $K=5$ & older wins in 3 targets & possible recency override \\
+T15 & $K=10$ & older wins in 3 targets & consistent across K \\
+T15 & $K=20$ & older wins in 4 targets & older layers remain useful \\
+T12 & diagnostic & 2022-08-13 $\rightarrow$ 2022-06-21 & 53-day match \\
+T12 & diagnostic & 2022-08-25 $\rightarrow$ 2022-08-13 & older over previous \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The practical implication is that a longitudinal BCI should not keep only the
+latest input layer. A more robust system could maintain a small library of past
+input-layer states, use the previous session as the default, and invoke a
+recency-aware geometry gate only when the beginning-of-day neural geometry
+strongly suggests that an older state is a better match.
+
 \subsection{A Single Distance-Ratio Override Is Too Weak}
 Since geometry sometimes chooses older sources, we tested whether a simple
 distance-ratio gate can improve over recency: keep the previous source unless the
@@ -275,6 +315,9 @@ strongest simple policy is often even simpler: use the previous session. This
 changes the adaptation ladder. Recency should be the default prior; geometry
 should be used as an additional signal for detecting when the previous session is
 not the right source.
+This also suggests a practical memory mechanism: instead of overwriting old
+session adapters, the system should retain a library of past input-layer states
+and learn when the current session has returned to one of them.
 
 The failed distance-ratio override is also informative. It shows that geometry is
 not automatically a better policy than recency. A future gate should likely use

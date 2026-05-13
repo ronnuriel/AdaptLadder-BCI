@@ -1,0 +1,406 @@
+\documentclass{article}
+
+\usepackage{ijcai26}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{How Much Adaptation Is Enough?\\Drift Geometry and Minimal Calibration in Brain-to-Text BCI}
+\author{Ron Nuriel}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Brain-to-text BCI decoders must remain usable as neural signals change across
+recording sessions. We audit how much input adaptation is needed when the
+official T15 brain-to-text GRU is evaluated across sessions. Native day-specific
+input layers reproduce low validation phoneme error (9.06\% PER), while forcing
+sessions through non-native input layers increases PER to 22.67--34.43\%.
+Unsupervised moment corrections fail to recover this loss, and small supervised
+input adapters recover only about 10\% of the native-day gap. The strongest
+practical result is source-layer selection: using a short unlabeled
+beginning-of-day window to choose a past input layer recovers much of the
+fixed-source loss, but the immediately previous session is an even stronger
+simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks
+shows similar longitudinal structure across spike-power and threshold-crossing
+features. These results suggest that recency should
+be the default adaptation prior, while drift geometry is a useful signal for
+deciding when that default may need to be overridden.
+\end{abstract}
+
+\section{Introduction}
+High-performance speech BCIs commonly include session-specific adaptation
+machinery because intracortical neural features drift across days. This raises a
+practical question: before retraining a decoder or collecting a long supervised
+calibration set, how much adaptation is enough?
+
+We examine this question in the official T15 brain-to-text GRU baseline from a
+rapidly calibrating speech neuroprosthesis study~\cite{card2024accurate}. The
+model contains learned day-specific input layers, followed by a GRU and output
+head. This structure creates a useful stress test: if a target session is decoded
+through the wrong input layer, performance measures the decoder-facing cost of
+cross-session input mismatch. We then ask whether simple feature corrections,
+small learned adapters, or geometry-guided source selection can recover the lost
+performance.
+
+The contribution is not a new speech decoder. Instead, we provide a decoder-facing
+adaptation audit:
+\begin{itemize}
+    \item Non-native input layers cause a large PER degradation in T15.
+    \item Mean/variance correction is not enough, and small learned adapters give
+    only modest recovery.
+    \item Geometry-guided source selection recovers much of the fixed-source
+    degradation, but previous-session recency is the strongest simple baseline.
+    \item T12 diagnostic blocks show a similar geometry/recency structure in a
+    second dataset, without claiming T12 decoder replication.
+\end{itemize}
+
+We do not claim that neural drift geometry is new. Rather, we show that in a
+deployed-style brain-to-text decoder with learned day-specific input layers,
+short-window geometry is actionable for choosing among existing input-layer
+states and for framing recency as an explicit adaptation prior.
+
+\section{Related Work}
+Intracortical communication BCIs have advanced rapidly from handwriting-based
+brain-to-text decoding~\cite{willett2021handwriting,fan2023corp} to speech
+neuroprostheses that decode attempted speech into text or spoken
+output~\cite{willett2023speech,card2024accurate}. These systems commonly rely on
+recurrent neural decoders and session-specific adaptation or recalibration to
+maintain performance as recordings change over time.
+
+Cross-session stability has also been studied through the lens of neural
+geometry. Manifold-alignment methods can stabilize fixed decoders by aligning
+low-dimensional neural activity across recording instabilities~\cite{degenhart2020stabilization},
+and recent dynamics-aware approaches such as NoMAD use temporal structure to
+perform unsupervised alignment over weeks to months~\cite{karpowicz2025nomad}.
+In speech BCI specifically, a recent preprint proposes adversarial
+session-invariant learning to reduce session-specific information while
+preserving phoneme decoding structure~\cite{zhang2026align}. Continual
+recalibration with pseudo-labels provides a complementary route, using
+language-model corrections to update communication decoders online~\cite{fan2023corp}.
+
+Our work is narrower. We do not train a new robust decoder or propose a full
+recalibration method. Instead, we audit the official T15 decoder to ask which
+low-cost adaptation rungs are sufficient, when they fail, and how recency and
+drift geometry can guide source-layer choice.
+
+\section{Data and Decoder}
+\textbf{T15.} The main experiments use T15 copy-task neural features from the
+official brain-to-text dataset~\cite{card2024accurate}. We evaluate 41
+validation sessions with available ground-truth phoneme labels. Neural inputs
+are passed through the official GRU checkpoint and decoded greedily at the
+phoneme level using CTC collapse.
+
+\textbf{Official baseline.} The decoder contains learned day-specific input
+layers, a GRU backbone, and an output layer over phoneme classes. We evaluate two
+families of conditions. In the native-day condition, each session uses its own
+input layer. In cross-day stress tests, target sessions use a fixed or selected
+non-native source input layer while the rest of the decoder remains unchanged.
+
+\textbf{T12 diagnostic blocks.} As a secondary check, we analyze diagnostic
+blocks from the T12 speech neuroprosthesis dataset~\cite{willett2023speech}.
+This is a geometry-only analysis of spike-power and threshold-crossing feature
+variants; we do not reproduce the T12 decoder or report T12 PER.
+
+\section{Methods}
+\subsection{Decoder-Facing Metrics}
+For each T15 validation trial, we compute greedy CTC phoneme predictions and
+phoneme error rate (PER). We report phoneme-weighted PER unless otherwise stated.
+Quality diagnostics such as blank rate, confidence, and entropy are also saved,
+but the core results use PER.
+
+\subsection{Cross-Day Stress Test}
+We compare native-day decoding against three fixed non-native source layers:
+early (\texttt{t15.2023.08.13}), middle (\texttt{t15.2023.11.26}), and late
+(\texttt{t15.2025.04.13}). This tests whether the decoder degradation is tied to
+one bad source layer or is a general consequence of input-layer mismatch.
+
+\subsection{Adaptation Ladder}
+Using the middle source layer, we test increasingly stronger input corrections:
+no correction, target z-scoring, source moment matching, diagonal affine
+calibration, and full input-layer calibration. Moment methods use full-session
+unsupervised feature statistics. Learned adapters use the first $K$ labeled
+validation trials and are evaluated only on the remaining trials.
+
+\subsection{Drift Geometry and Source Selection}
+For each source-target pair, we compute temporal distance, mean and scale shifts,
+relative covariance shift, CORAL-style distance, and PCA subspace distances. We
+then select a source input layer by nearest covariance geometry. To approximate
+deployment, a K-shot variant estimates target geometry from only the first
+$K \in \{5,10,20\}$ unlabeled validation trials and evaluates on the remaining
+trials.
+
+Because temporal recency is an obvious baseline, we also evaluate the immediately
+previous input layer. Finally, we test a simple recency-aware override: use the
+previous input layer by default and switch to the geometry-selected older source
+only if its covariance distance is less than $\alpha$ times the distance to the
+previous source.
+
+\section{Results}
+\subsection{Input-Layer Mismatch Produces Large Decoder-Facing Degradation}
+Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the
+local evaluation reproduces the expected behavior of the official checkpoint.
+When all sessions are forced through non-native source input layers, PER rises to
+22.67--34.43\%, harming 40/41 sessions for each source choice.
+
+\begin{table}[t]
+\centering
+\caption{T15 decoder-facing stress test and adaptation ladder. Fixed-source and
+moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned
+adapter rows use $K=20$ calibration trials and are evaluated on the remaining
+trials, so their baseline subset differs slightly from the full-validation rows.}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+Condition & Weighted PER & Recovery & Note \\
+\midrule
+Native-day & 9.06\% & 100\% & Correct day-specific layer \\
+Fixed early source & 28.81\% & -- & 40/41 sessions harmed \\
+Fixed middle source & 22.67\% & 0\% & Main stress-test source \\
+Fixed late source & 34.43\% & -- & 40/41 sessions harmed \\
+Target z-score & 22.75\% & -0.6\% & Moment correction fails \\
+Moment match to source & 22.73\% & -0.4\% & Moment correction fails \\
+Diagonal affine, $K=20$ & 20.21\% & 10.1\% & Small learned adapter \\
+Input layer, $K=20$ & 20.27\% & 9.7\% & Learned input layer \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/t15_source_sweep_weighted_per.png}
+\includegraphics[width=0.48\linewidth]{figures/t15_input_layer_calibration_recovery_source_middle_epochs5.png}
+\caption{Left: fixed non-native source layers strongly degrade T15 phoneme
+decoding relative to native-day decoding. Right: small learned calibration
+recovers only a modest fraction of the fixed-source gap.}
+\end{figure}
+
+\subsection{Moment Correction Is Not Enough}
+The natural first hypothesis is that cross-session mismatch is mostly a
+mean/variance shift. The data do not support this. Target z-scoring and moment
+matching to the source distribution remain essentially tied with no correction,
+and are slightly worse in aggregate. This suggests that the learned day-specific
+input layers capture transformations richer than channel-wise mean and variance.
+
+\subsection{Small Learned Adapters Help, But Do Not Solve Drift}
+Supervised diagonal affine and input-layer calibration improve PER modestly.
+With $K=20$, diagonal affine reduces weighted PER from 21.51\% to 20.21\%, while
+input-layer calibration gives 20.27\%. These correspond to only about 10\% of the
+native-day gap. Thus small learned adapters are a useful rung of the adaptation
+ladder, but they do not replace the native day-specific layer.
+
+\subsection{Source Selection Recovers More Than Small Adapters}
+Geometry-guided source selection gives a much stronger recovery than directly
+adapting a fixed middle source. In an offline all-candidate setting, choosing the
+nearest non-native input layer by covariance geometry reaches 11.38\% PER. In a
+stricter past-only setting, it reaches 13.58\% PER on 40 sessions, compared with
+22.76\% for the fixed middle source on the same sessions.
+
+The beginning-of-day version is more realistic. With only the first $K$ unlabeled
+trials used to estimate target geometry, past-only source selection reaches
+14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and
+71.3\% of the fixed-source loss. However, the immediately previous input layer is
+even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets.
+
+\begin{table}[t]
+\centering
+\caption{Beginning-of-day source selection on remaining validation trials.
+Previous-session recency is the strongest simple baseline, while K-shot geometry
+selection remains close and often selects non-previous sources.}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+Method & $K=5$ PER & $K=10$ PER & $K=20$ PER \\
+\midrule
+Native-day & 8.95\% & 8.88\% & 8.90\% \\
+Fixed middle source & 22.51\% & 22.40\% & 22.30\% \\
+Previous source & 13.09\% & 12.84\% & 12.21\% \\
+K-shot geometry source & 14.00\% & 13.19\% & 12.74\% \\
+Best simple override & 13.09\% & 12.90\% & 12.18\% \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/t15_previous_vs_geometry_per.png}
+\includegraphics[width=0.48\linewidth]{figures/t15_selected_source_timeline.png}
+\caption{Left: previous-session recency is a strong source-selection baseline
+and slightly outperforms unconditional K-shot geometry selection. Right: geometry
+still reveals non-recent source matches, indicating that sessions are not always
+closest to the immediately previous day.}
+\end{figure}
+
+\subsection{Non-Recent Matches Suggest Reusable Input States}
+The previous-session input layer is the strongest simple baseline, but it is not
+always the geometrically nearest source. In T15, K-shot geometry selection
+chooses the previous session in most targets, but selects an older non-previous
+input layer in 22--30\% of cases. Among those non-previous selections, the older
+source outperforms the previous-session source in 3, 3, and 4 target sessions for
+$K=5,10,20$, respectively. This suggests that some target sessions may resemble
+older input-layer states rather than only drifting monotonically away from the
+previous day.
+One possible explanation is that a day-specific input layer may represent a
+neural recording state rather than a purely chronological day. Changes in
+recording quality, electrode yield, thresholding, neural strategy, or user state
+could move a new session closer to an older feature geometry than to the
+immediately preceding session. In this view, source selection is closer to memory
+retrieval over past input states than to choosing the most recent date.
+
+We observe the same qualitative pattern in the T12 diagnostic-block geometry
+check. Using spike-power features, geometry selects an older non-previous session
+in 7/15 evaluable targets. Some selections jump substantially backward in time,
+for example 2022-08-13 selecting 2022-06-21, a 53-day lag, and 2022-08-25
+selecting 2022-08-13 rather than the immediately preceding session.
+
+\begin{table}[t]
+\centering
+\caption{Evidence for non-recent source matches. These examples do not prove
+exact recurrence of neural states, but motivate maintaining a library of past
+input-layer states rather than only the most recent layer.}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+Data & Setting & Evidence & Interpretation \\
+\midrule
+T15 & $K=5$ & older wins in 3 targets & possible recency override \\
+T15 & $K=10$ & older wins in 3 targets & consistent across K \\
+T15 & $K=20$ & older wins in 4 targets & older layers remain useful \\
+T12 & diagnostic & 2022-08-13 $\rightarrow$ 2022-06-21 & 53-day match \\
+T12 & diagnostic & 2022-08-25 $\rightarrow$ 2022-08-13 & older over previous \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The practical implication is that a longitudinal BCI should not keep only the
+latest input layer. A more robust system could maintain a small library of past
+input-layer states, use the previous session as the default, and invoke a
+recency-aware geometry gate only when the beginning-of-day neural geometry
+strongly suggests that an older state is a better match.
+
+\subsection{A Bounded Input-State Library Is Usually Enough}
+We therefore asked how large this past-state library needs to be. For each target
+session, we restricted K-shot geometry selection to the previous session, the last
+3 sessions, the last 5 sessions, or all past sessions. The immediately previous
+session remains the best aggregate policy, but a small recent library is close to
+the all-past library. At $K=20$, last-5 and all-past selection both reach
+12.74\% PER, while last-3 gives 12.76\%. Expanding the nearest-source search to
+all past layers does not improve aggregate PER over recency under this simple
+distance rule; rather, it increases the need for a confidence gate before using
+older states.
+
+\begin{table}[t]
+\centering
+\caption{K-shot input-state library-size ablation. PER is measured on remaining
+validation trials after using the first $K$ trials to estimate target geometry.
+A bounded recent library nearly matches all-past selection, while previous-only
+recency remains the strongest aggregate baseline.}
+\begin{tabular}{lcccc}
+\toprule
+$K$ & Previous & Last 3 & Last 5 & All past \\
+\midrule
+5 & 13.09\% & 13.47\% & 13.55\% & 14.00\% \\
+10 & 12.84\% & 13.19\% & 13.19\% & 13.19\% \\
+20 & 12.21\% & 12.76\% & 12.74\% & 12.74\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{A Single Distance-Ratio Override Is Too Weak}
+Since geometry sometimes chooses older sources, we tested whether a simple
+distance-ratio gate can improve over recency: keep the previous source unless the
+geometry-selected source is at least an $\alpha$ fraction closer in covariance
+distance. This rule does not yet produce a meaningful improvement. At
+$\alpha=0.9$, it ties previous at $K=5$, is slightly worse at $K=10$ (12.90\%
+vs 12.84\%), and improves only marginally at $K=20$ (12.18\% vs 12.21\%).
+At $\alpha=1.0$, it approaches unconditional geometry selection and becomes
+worse. Geometry is therefore a useful candidate signal, but a deployable gate
+needs richer confidence features.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/t15_kshot_recency_geometry_override_weighted_per.png}
+\includegraphics[width=0.48\linewidth]{figures/t12_diagnostic_geometry_distance_vs_days.png}
+\caption{Left: a naive recency-aware geometry override does not substantially
+beat the previous-session baseline. Right: T12 diagnostic-block covariance
+distance increases with temporal separation, supporting the broader geometry
+framing outside T15.}
+\end{figure}
+
+\subsection{T12 Diagnostic Blocks Support the Geometry/Recency Framing}
+T12 diagnostic blocks provide a secondary geometry-only check. Using spike-power
+features, covariance distance increases with temporal separation across 120
+past-source pairs (Spearman $\rho=0.44$, $p=5.4\times10^{-7}$). Geometry selects
+the immediately previous session in 8/15 target sessions and an older source in
+7/15. Some selections jump far back in time, such as a 53-day lag. This pattern
+is not limited to spike power: threshold-crossing variants tx1--tx4 also show
+positive days-distance correlations ($\rho=0.34$--$0.47$, all $p<1.3\times
+10^{-4}$) and older-source selections in 6--9 of 15 targets. This supports the
+idea that recency is important but not sufficient to describe longitudinal neural
+geometry. Because we do not run the T12 decoder, this result is only supporting
+evidence, not decoder replication.
+
+\section{Discussion}
+The main lesson is that cross-session adaptation should not be treated as a
+single fixed correction. The native T15 input layers are highly effective, and
+using the wrong input layer causes large decoder-facing degradation. But simple
+moment alignment does not emulate those layers, and small learned adapters
+recover only a small fraction of the lost performance.
+
+The most useful low-cost intervention is not a new adapter, but a better choice
+of existing input layer. A short unlabeled beginning-of-day window is enough to
+choose a past layer that recovers much of the fixed-source loss. Yet the
+strongest simple policy is often even simpler: use the previous session. This
+changes the adaptation ladder. Recency should be the default prior; geometry
+should be used as an additional signal for detecting when the previous session is
+not the right source.
+This also suggests a practical memory mechanism: instead of overwriting old
+session adapters, the system should retain a library of past input-layer states
+and learn when the current session has returned to one of them.
+
+The failed distance-ratio override is also informative. It shows that geometry is
+not automatically a better policy than recency. A future gate should likely use
+multiple confidence features: distance margin, previous-source rank, temporal
+gap, session quality, decoder confidence, and perhaps hidden-state or logit-space
+diagnostics.
+
+A natural extension is to test whether the input-state library view applies not
+only across days, but also across speech behaviors. Recent inner-speech
+recordings from T12, T15, T16, and T17 include attempted, imagined or inner,
+listening, and silent-reading tasks, and show that inner speech is represented in
+motor cortex with a motor-intent dimension separating attempted and inner
+speech~\cite{kunz2025inner}. These data could test whether a new neural geometry
+reflects session drift, speech-mode shift, or both. More broadly, future
+input-state libraries may need to index both recording state and intended speech
+mode.
+
+\section{Limitations}
+This study is a decoder-facing audit, not a new decoding architecture. Greedy PER
+is lighter than full WER and avoids the language-model/Redis evaluation stack.
+T12 is geometry-only and should not be interpreted as T12 PER replication. The
+learned adapter and K-shot source-selection experiments simulate a
+beginning-of-day calibration window within the validation split and evaluate only
+on the remaining trials. They are intended to map adaptation rungs, not to
+optimize a final deployment benchmark.
+
+\section{Conclusion}
+For T15 brain-to-text decoding, fixed non-native input layers break the decoder,
+moment correction is too weak, and small learned adapters recover only modestly.
+Most of the practical recovery comes from selecting a compatible past input
+layer. The immediately previous session is a strong default, while drift geometry
+is a measurable signal for deciding when that default may need to be overridden.
+This supports a recency-aware, geometry-guided adaptation ladder: start with the
+previous input state, measure drift geometry from a short unlabeled window, and
+move to stronger calibration only when the geometry indicates that simple source
+selection is not enough.
+
+\bibliographystyle{named}
+\bibliography{ijcai26}
+
+\end{document}

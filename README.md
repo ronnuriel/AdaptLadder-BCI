@@ -51,6 +51,7 @@ scripts/
   run_t15_library_size_ablation.py
   analyze_t15_selected_sources.py
   analyze_t15_recency_geometry_override.py
+  analyze_t15_learned_gate.py
   run_t12_geometry_feasibility.py
 src/
   decoder_eval.py

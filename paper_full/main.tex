@@ -263,32 +263,39 @@ policy under the current covariance-nearest rule.}
 \subsection{A Single Distance-Ratio Override Is Too Weak}
 Since geometry sometimes chooses older sources, we tested whether a simple distance-ratio gate can improve over recency: keep the previous source unless the geometry-selected source is at least an $\alpha$ fraction closer in covariance distance. This rule does not yet produce a meaningful improvement. At $\alpha=0.9$, it ties previous at $K=5$, is slightly worse at $K=10$ (12.90\% vs 12.84\%), and improves only marginally at $K=20$ (12.18\% vs 12.21\%). At $\alpha=1.0$, it approaches unconditional geometry selection and becomes worse. Geometry is therefore a useful candidate signal, but a deployable gate needs richer confidence features.
 
-To test whether this failure is merely due to a poor threshold, we also examine
-the non-previous selections directly. If the distance ratio were a reliable
-confidence score, lower geometry/previous distance ratios should correspond to
-larger PER gains for the older source. This relationship is weak and
-non-significant across $K$ (Table~\ref{tab:margin}). Thus the current covariance
-margin can identify plausible older candidates, but it is not sufficient by
-itself to decide when to override recency.
+To test whether this failure is merely due to a poor hand-chosen threshold, we
+also train a tiny recency-aware gate. For each $K$, we fit a leave-one-session-out
+decision stump over geometry features such as distance ratio, absolute margin,
+source lag, and previous/source distances. This learned gate improves over
+previous-session recency only at $K=20$, and only slightly (12.21\% to 12.15\%
+PER; Table~\ref{tab:learned-gate}). At $K=5$ and $K=10$, it overuses older
+sources and performs worse than previous. A one-dimensional learned gate is
+therefore still not enough; future gates need richer confidence signals.
 
 \begin{table}[t]
 \centering
-\caption{Source-selection margin analysis for non-previous geometry selections.
-The distance ratio is the geometry-selected covariance distance divided by the
-previous-source distance. The weak correlations show that a single covariance
-margin is not enough for a reliable override gate.}
+\caption{Leave-one-session-out learned gate. The gate defaults to the previous
+source and learns a one-feature decision stump for when to override with the
+geometry-selected older source. It gives only a tiny gain at $K=20$.}
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-$K$ & Non-prev. & Older wins & $\rho$(ratio, PER delta) \\
+$K$ & Previous & Geometry & Gate & Overrides \\
 \midrule
-5 & 11 & 3 & 0.12 \\
-10 & 9 & 3 & -0.02 \\
-20 & 11 & 4 & 0.28 \\
+5 & 13.09\% & 14.00\% & 13.37\% & 6 \\
+10 & 12.84\% & 13.19\% & 13.18\% & 5 \\
+20 & 12.21\% & 12.74\% & 12.15\% & 4 \\
 \bottomrule
 \end{tabular}
-\label{tab:margin}
+\label{tab:learned-gate}
 \end{table}
+
+The non-previous selections explain why the problem is difficult. Older sources
+beat the previous source in only a minority of non-previous geometry selections
+(3/11, 4/9, and 3/11 for $K=5,10,20$ using phoneme-weighted session PER), and the
+Spearman correlation between geometry/previous distance ratio and older-source
+gain is weak ($\rho=0.12,-0.02,0.28$). Thus covariance geometry is useful for
+candidate retrieval, but not yet reliable as a standalone confidence measure.
 
 \begin{figure}[t]
 \centering

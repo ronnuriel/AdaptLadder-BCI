@@ -206,6 +206,12 @@ python scripts/run_t15_library_size_ablation.py \
   --gpu-number -1
 ```
 
+Learned recency-aware gate analysis:
+
+```bash
+python scripts/analyze_t15_learned_gate.py
+```
+
 ## 7. Optional T12 Geometry-Only Check
 
 Prepare the Dryad manifest:

@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions. We audit how much input adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), while forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised moment corrections fail to recover this loss. A supervised input-layer adapter trained from 20 labeled calibration trials recovers 22.7\% of the native-day gap, improving over shorter adapter training but still leaving substantial degradation. The strongest practical result is source-layer selection: using a short unlabeled beginning-of-day window to choose a past input layer recovers much of the fixed-source loss, but the immediately previous session is an even stronger simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks shows similar longitudinal structure across spike-power and threshold-crossing features. These results suggest that recency should be the default adaptation prior, while drift geometry is a useful signal for deciding when that default may need to be overridden.
+Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions. We audit how much input adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), while forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised moment corrections fail to recover this loss. A supervised input-layer adapter trained from 20 labeled calibration trials recovers 22.7\% of the native-day gap, improving over shorter adapter training but still leaving substantial degradation. The strongest practical result is source-layer selection: using a short unlabeled beginning-of-day window to choose a past input layer recovers much of the fixed-source loss, but the immediately previous session is an even stronger simple baseline. Secondary geometry-only analyses of T12 diagnostic blocks and inner-speech behavior blocks show similar state structure beyond the main T15 decoder experiment. These results suggest that recency should be the default adaptation prior, while drift geometry is a useful signal for deciding when that default may need to be overridden.
 \end{abstract}
 
 \section{Introduction}
@@ -206,7 +206,7 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \end{figure}
 
 \subsection{Non-Recent Matches Suggest Reusable Input States}
-The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. In T15, K-shot geometry selection chooses the previous session in most targets, but selects an older non-previous input layer in 22--30\% of cases. Among those non-previous selections, the older source outperforms the previous-session source in 3, 3, and 4 target sessions for $K=5,10,20$, respectively. This suggests that some target sessions may resemble older input-layer states rather than only drifting monotonically away from the previous day.
+The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. In T15, K-shot geometry selection chooses the previous session in most targets, but selects an older non-previous input layer in 22--30\% of cases. Depending on whether improvement is summarized by trial-mean PER or phoneme-weighted session PER, these older sources outperform the previous-session source in a small minority of non-previous selections. This suggests that some target sessions may resemble older input-layer states rather than only drifting monotonically away from the previous day.
 
 One possible explanation is that a day-specific input layer may represent a neural recording state rather than a purely chronological day. Changes in recording quality, electrode yield, thresholding, neural strategy, or user state could move a new session closer to an older feature geometry than to the immediately preceding session. In this view, source selection is closer to memory retrieval over past input states than to choosing the most recent date.
 
@@ -220,9 +220,8 @@ We observe the same qualitative pattern in the T12 diagnostic-block geometry che
 \toprule
 Data & Setting & Evidence & Interpretation \\
 \midrule
-T15 & $K=5$ & older wins in 3 targets & possible override \\
-T15 & $K=10$ & older wins in 3 targets & consistent across K \\
-T15 & $K=20$ & older wins in 4 targets & older layers useful \\
+T15 & K-shot & minority wins & override signal \\
+T15 & fingerprint & lower subspace angle & drift type \\
 T12 & diagnostic & 08-13 $\rightarrow$ 06-21 & 53-day match \\
 T12 & diagnostic & 08-25 $\rightarrow$ 08-13 & older over previous \\
 \bottomrule

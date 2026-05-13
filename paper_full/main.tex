@@ -128,15 +128,9 @@ layers, or whether a bounded recent library is enough under the current geometry
 metric.
 
 \section{Experiments}
-The experiments are organized around five questions. First, does a non-native
-input layer create a decoder-facing degradation, or is drift only visible in
-feature-space plots? Second, can simple moment corrections recover the loss?
-Third, do small learned adapters recover more than moment corrections? Fourth,
-can a short unlabeled beginning-of-day window choose a useful past input layer?
-Finally, does geometry provide information beyond recency, and is the same
-longitudinal structure visible in T12 diagnostic data?
+We organize the empirical study into six experiments, each paired with a table or figure. First, we stress-test the official T15 decoder under non-native input layers and place moment corrections and learned adapters on a single adaptation ladder. Second, we ask whether a short beginning-of-day window can choose a useful past input layer. Third, we analyze reusable input-state libraries and non-recent source matches. Fourth, we test gating and drift fingerprints. Finally, we add two geometry-only supporting checks: T12 longitudinal robustness and inner-speech behavior geometry.
 
-\subsection{Input-Layer Mismatch Produces Large Decoder-Facing Degradation}
+\subsection{Cross-Day Stress Test and Adaptation Ladder}
 Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the local evaluation reproduces the expected behavior of the official checkpoint. When all sessions are forced through non-native source input layers, PER rises to 22.67--34.43\%, harming 40/41 sessions for each source choice.
 
 \begin{table}[t]
@@ -168,16 +162,14 @@ Input layer, $K=20$ & 18.59\% & 22.7\% & 20 epochs \\
 \label{fig:ladder}
 \end{figure}
 
-\subsection{Moment Correction Is Not Enough}
 The natural first hypothesis is that cross-session mismatch is mostly a mean/variance shift. The data do not support this. Target z-scoring and moment matching to the source distribution remain essentially tied with no correction, and are slightly worse in aggregate. This suggests that the learned day-specific input layers capture transformations richer than channel-wise mean and variance.
 
-\subsection{Small Learned Adapters Help, But Do Not Solve Drift}
-Supervised diagonal affine and input-layer calibration improve PER beyond moment matching. With $K=20$, diagonal affine reduces weighted PER from 21.51\% to 20.21\%. A longer CUDA input-layer calibration run improves the learned input layer to 18.59\%, recovering 22.7\% of the native-day gap. Thus learned input adaptation is a useful rung of the adaptation ladder, but even this stronger small-calibration setting does not replace the native day-specific layer.
+Supervised diagonal affine and input-layer calibration improve PER beyond moment matching. With $K=20$, diagonal affine reduces weighted PER from 21.51\% to 20.21\%. A longer CUDA input-layer calibration run improves the learned input layer to 18.59\%, recovering 22.7\% of the native-day gap. A follow-up initialization check suggests that calibration should be treated as residual adaptation rather than reset: on the same $K=20$ subset, initializing from the previous input state improves 11.58\% to 11.03\%, whereas fixed-middle initialization remains much weaker at 17.93\%. Thus learned input adaptation is a useful rung of the adaptation ladder, but even this stronger small-calibration setting does not replace a well-matched prior input state.
 
-\subsection{Source Selection Recovers More Than Small Adapters}
+\subsection{Beginning-of-Day Source Selection}
 Geometry-guided source selection gives a much stronger recovery than directly adapting a fixed middle source. In an offline all-candidate setting, choosing the nearest non-native input layer by covariance geometry reaches 11.38\% PER. In a stricter past-only setting, it reaches 13.58\% PER on 40 sessions, compared with 22.76\% for the fixed middle source on the same sessions.
 
-The beginning-of-day version is more realistic. With only the first $K$ unlabeled trials used to estimate target geometry, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets.
+The beginning-of-day version is more realistic. With only the first $K$ unlabeled trials used to estimate target geometry, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets. This prior has a time horizon: previous-source PER is 9.97\% when the last available input state is 0--3 days old, 13.75\% at 4--14 days, and 24.54\% beyond two weeks. Thus previous is a strong default only when it is truly recent.
 
 \begin{table}[t]
 \centering
@@ -205,7 +197,7 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \label{fig:source-selection}
 \end{figure}
 
-\subsection{Non-Recent Matches Suggest Reusable Input States}
+\subsection{Reusable Input-State Libraries}
 The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. In T15, K-shot geometry selection chooses the previous session in most targets, but selects an older non-previous input layer in 22--30\% of cases. Depending on whether improvement is summarized by trial-mean PER or phoneme-weighted session PER, these older sources outperform the previous-session source in a small minority of non-previous selections. This suggests that some target sessions may resemble older input-layer states rather than only drifting monotonically away from the previous day.
 
 One possible explanation is that a day-specific input layer may represent a neural recording state rather than a purely chronological day. Changes in recording quality, electrode yield, thresholding, neural strategy, or user state could move a new session closer to an older feature geometry than to the immediately preceding session. In this view, source selection is closer to memory retrieval over past input states than to choosing the most recent date.
@@ -231,7 +223,6 @@ T12 & diagnostic & 08-25 $\rightarrow$ 08-13 & older over previous \\
 
 The practical implication is that a longitudinal BCI should not keep only the latest input layer. A more robust system could maintain a small library of past input-layer states, use the previous session as the default, and invoke a recency-aware geometry gate only when the beginning-of-day neural geometry strongly suggests that an older state is a better match.
 
-\subsection{A Bounded Input-State Library Is Usually Enough}
 We therefore asked how large this past-state library needs to be. For each target session, we restricted K-shot geometry selection to the previous session, the last 3 sessions, the last 5 sessions, or all past sessions. The immediately previous session remains the best aggregate policy, but a small recent library is close to the all-past library. At $K=20$, last-5 and all-past selection both reach 12.74\% PER, while last-3 gives 12.76\%. Expanding the nearest-source search to all past layers does not improve aggregate PER over recency under this simple distance rule; rather, it increases the need for a confidence gate before using older states.
 
 \begin{table}[t]
@@ -259,7 +250,7 @@ policy under the current covariance-nearest rule.}
 \label{fig:library-size}
 \end{figure}
 
-\subsection{A Single Distance-Ratio Override Is Too Weak}
+\subsection{Gating and Drift Fingerprints}
 Since geometry sometimes chooses older sources, we tested whether a simple distance-ratio gate can improve over recency: keep the previous source unless the geometry-selected source is at least an $\alpha$ fraction closer in covariance distance. This rule does not yet produce a meaningful improvement. At $\alpha=0.9$, it ties previous at $K=5$, is slightly worse at $K=10$ (12.90\% vs 12.84\%), and improves only marginally at $K=20$ (12.18\% vs 12.21\%). At $\alpha=1.0$, it approaches unconditional geometry selection and becomes worse. Geometry is therefore a useful candidate signal, but a deployable gate needs richer confidence features.
 
 To test whether this failure is merely due to a poor hand-chosen threshold, we
@@ -296,7 +287,6 @@ Spearman correlation between geometry/previous distance ratio and older-source
 gain is weak ($\rho=0.12,-0.02,0.28$). Thus covariance geometry is useful for
 candidate retrieval, but not yet reliable as a standalone confidence measure.
 
-\subsection{Drift Fingerprints Suggest Subspace-Driven Retrieval}
 To ask why older sources sometimes beat the previous session, we compare drift
 fingerprints for target--previous pairs and target--older-source pairs. This
 analysis is preliminary because older-source wins are rare, but it reveals a

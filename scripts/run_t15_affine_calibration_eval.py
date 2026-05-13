@@ -268,6 +268,9 @@ def train_diagonal_affine_adapter(
         )
 
     for _ in range(epochs):
+        # cuDNN RNN backward on CUDA requires train mode even though the
+        # pretrained decoder weights remain frozen.
+        model.train()
         optimizer.zero_grad(set_to_none=True)
         loss = calibration_loss(
             features,
@@ -288,6 +291,7 @@ def train_diagonal_affine_adapter(
             torch.nn.utils.clip_grad_norm_([log_scale, bias], max_norm=grad_clip)
         optimizer.step()
 
+    model.eval()
     with torch.no_grad():
         final_loss = float(
             calibration_loss(
@@ -455,6 +459,11 @@ def main() -> None:
     parser.add_argument("--min-eval-trials", type=int, default=5)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto")
     parser.add_argument("--gpu-number", type=int, default=-1)
+    parser.add_argument(
+        "--disable-amp",
+        action="store_true",
+        help="Disable CUDA autocast/AMP. Useful because CUDA CTC loss does not support bfloat16 on some PyTorch builds.",
+    )
     parser.add_argument("--output-trials", type=Path, default=Path("results/tables/t15_affine_calibration_trial_results_source_middle.csv"))
     parser.add_argument("--output-summary", type=Path, default=Path("results/tables/t15_affine_calibration_session_summary_source_middle.csv"))
     parser.add_argument("--output-overall", type=Path, default=Path("results/tables/t15_affine_calibration_overall_summary_source_middle.csv"))
@@ -479,7 +488,7 @@ def main() -> None:
 
     device = resolve_requested_device(args.device, args.gpu_number)
     model, model_args = load_official_gru_decoder(ROOT, args.model_path, device)
-    _set_use_amp(model_args, enabled=(device.type == "cuda" and bool(model_args["use_amp"])))
+    _set_use_amp(model_args, enabled=(device.type == "cuda" and bool(model_args["use_amp"]) and not args.disable_amp))
     add_official_model_training_to_path(ROOT)
     from evaluate_model_helpers import load_h5py_file
 

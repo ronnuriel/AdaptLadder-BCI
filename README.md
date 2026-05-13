@@ -14,8 +14,8 @@ needed when an existing brain-to-text decoder encounters cross-session drift.
 The current conclusion is:
 
 > Fixed non-native input layers strongly degrade T15 decoding. Simple
-> moment-based correction is not enough. Small learned adapters recover only
-> modestly. Most practical recovery comes from choosing a compatible past input
+> moment-based correction is not enough. Learned input adapters recover only
+> part of the gap. Most practical recovery comes from choosing a compatible past input
 > layer, where previous-session recency is a strong default and drift geometry is
 > a useful signal for possible overrides.
 
@@ -27,7 +27,7 @@ The current conclusion is:
 | Fixed non-native source layers | 22.67-34.43% PER; 40/41 sessions harmed |
 | Target z-score / moment matching | No recovery; slightly worse than no correction |
 | Diagonal affine, K=20 | 20.21% PER on remaining trials; about 10% gap recovery |
-| Input-layer calibration, K=20 | 20.27% PER on remaining trials; about 9.7% gap recovery |
+| Input-layer calibration, K=20 | 18.59% PER on remaining trials; about 22.7% gap recovery after longer CUDA training |
 | K-shot geometry source selection, K=20 | 12.74% PER; about 71% fixed-source gap recovery |
 | Previous-session source, K=20 | 12.21% PER; strongest simple source baseline |
 | Library-size ablation, K=20 | Last-5 and all-past both 12.74% PER; bounded library is enough under current metric |

@@ -122,6 +122,33 @@ python scripts/run_t15_input_layer_calibration_eval.py \
   --output-recovery-figure results/figures/t15_input_layer_calibration_recovery_source_middle_epochs5.png
 ```
 
+Longer CUDA input-layer calibration used in the full-paper adapter analysis
+(`--disable-amp` avoids bfloat16 CTC loss on CUDA):
+
+```bash
+python scripts/run_t15_input_layer_calibration_eval.py \
+  --model-path data/external/btt-25-gru-pure-baseline-0-0898 \
+  --data-dir data/raw/hdf5_data_final \
+  --csv-path data/external/t15_copyTaskData_description.csv \
+  --eval-type val \
+  --source-session t15.2023.11.26 \
+  --calibration-trials 20 \
+  --methods native-day none moment_match_to_source input_layer \
+  --epochs 20 \
+  --learning-rate 1e-4 \
+  --l2-weight 1e-4 \
+  --grad-clip 5.0 \
+  --device cuda \
+  --gpu-number 0 \
+  --disable-amp \
+  --output-trials results/tables/t15_input_layer_calibration_trial_results_source_middle_K20_epochs20.csv \
+  --output-summary results/tables/t15_input_layer_calibration_session_summary_source_middle_K20_epochs20.csv \
+  --output-overall results/tables/t15_input_layer_calibration_overall_summary_source_middle_K20_epochs20.csv \
+  --output-training results/tables/t15_input_layer_calibration_training_summary_source_middle_K20_epochs20.csv \
+  --output-weighted-figure results/figures/t15_input_layer_calibration_weighted_per_source_middle_K20_epochs20.png \
+  --output-recovery-figure results/figures/t15_input_layer_calibration_recovery_source_middle_K20_epochs20.png
+```
+
 ## 5. Drift Geometry and Recovery
 
 ```bash

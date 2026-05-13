@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions. We audit how much input adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), while forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised moment corrections fail to recover this loss, and small supervised input adapters recover only about 10\% of the native-day gap. The strongest practical result is source-layer selection: using a short unlabeled beginning-of-day window to choose a past input layer recovers much of the fixed-source loss, but the immediately previous session is an even stronger simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks shows similar longitudinal structure across spike-power and threshold-crossing features. These results suggest that recency should be the default adaptation prior, while drift geometry is a useful signal for deciding when that default may need to be overridden.
+Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions. We audit how much input adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), while forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised moment corrections fail to recover this loss. A supervised input-layer adapter trained from 20 labeled calibration trials recovers 22.7\% of the native-day gap, improving over shorter adapter training but still leaving substantial degradation. The strongest practical result is source-layer selection: using a short unlabeled beginning-of-day window to choose a past input layer recovers much of the fixed-source loss, but the immediately previous session is an even stronger simple baseline. A secondary geometry-only analysis of T12 diagnostic blocks shows similar longitudinal structure across spike-power and threshold-crossing features. These results suggest that recency should be the default adaptation prior, while drift geometry is a useful signal for deciding when that default may need to be overridden.
 \end{abstract}
 
 \section{Introduction}
@@ -40,7 +40,7 @@ We examine this question in the official T15 brain-to-text GRU baseline from a r
 The contribution is not a new speech decoder. Instead, we provide a decoder-facing adaptation audit:
 \begin{itemize}
     \item Non-native input layers cause a large PER degradation in T15.
-    \item Mean/variance correction is not enough, and small learned adapters give only modest recovery.
+    \item Mean/variance correction is not enough; longer input-layer calibration improves recovery but remains incomplete.
     \item Geometry-guided source selection recovers much of the fixed-source degradation, but previous-session recency is the strongest simple baseline.
     \item T12 diagnostic blocks show a similar geometry/recency structure in a second dataset, without claiming T12 decoder replication.
 \end{itemize}
@@ -154,7 +154,7 @@ Fixed late & 34.43\% & -- & 40/41 harmed \\
 Target z-score & 22.75\% & -0.6\% & fails \\
 Moment match & 22.73\% & -0.4\% & fails \\
 Diag. affine, $K=20$ & 20.21\% & 10.1\% & adapter \\
-Input layer, $K=20$ & 20.27\% & 9.7\% & learned layer \\
+Input layer, $K=20$ & 18.59\% & 22.7\% & 20 epochs \\
 \bottomrule
 \end{tabular}
 \label{tab:ladder}
@@ -163,7 +163,7 @@ Input layer, $K=20$ & 20.27\% & 9.7\% & learned layer \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.48\linewidth]{figures/t15_source_sweep_weighted_per.png}
-\includegraphics[width=0.48\linewidth]{figures/t15_input_layer_calibration_recovery_source_middle_epochs5.png}
+\includegraphics[width=0.48\linewidth]{figures/t15_input_layer_calibration_recovery_source_middle_K20_epochs20.png}
 \caption{Left: fixed non-native source layers strongly degrade T15 phoneme decoding relative to native-day decoding. Right: small learned calibration recovers only a modest fraction of the fixed-source gap.}
 \label{fig:ladder}
 \end{figure}
@@ -172,7 +172,7 @@ Input layer, $K=20$ & 20.27\% & 9.7\% & learned layer \\
 The natural first hypothesis is that cross-session mismatch is mostly a mean/variance shift. The data do not support this. Target z-scoring and moment matching to the source distribution remain essentially tied with no correction, and are slightly worse in aggregate. This suggests that the learned day-specific input layers capture transformations richer than channel-wise mean and variance.
 
 \subsection{Small Learned Adapters Help, But Do Not Solve Drift}
-Supervised diagonal affine and input-layer calibration improve PER modestly. With $K=20$, diagonal affine reduces weighted PER from 21.51\% to 20.21\%, while input-layer calibration gives 20.27\%. These correspond to only about 10\% of the native-day gap. Thus small learned adapters are a useful rung of the adaptation ladder, but they do not replace the native day-specific layer.
+Supervised diagonal affine and input-layer calibration improve PER beyond moment matching. With $K=20$, diagonal affine reduces weighted PER from 21.51\% to 20.21\%. A longer CUDA input-layer calibration run improves the learned input layer to 18.59\%, recovering 22.7\% of the native-day gap. Thus learned input adaptation is a useful rung of the adaptation ladder, but even this stronger small-calibration setting does not replace the native day-specific layer.
 
 \subsection{Source Selection Recovers More Than Small Adapters}
 Geometry-guided source selection gives a much stronger recovery than directly adapting a fixed middle source. In an offline all-candidate setting, choosing the nearest non-native input layer by covariance geometry reaches 11.38\% PER. In a stricter past-only setting, it reaches 13.58\% PER on 40 sessions, compared with 22.76\% for the fixed middle source on the same sessions.
@@ -329,7 +329,7 @@ tx4 & 0.47 & 9/15 & 6/15 \\
 \end{table}
 
 \section{Discussion}
-The main lesson is that cross-session adaptation should not be treated as a single fixed correction. The native T15 input layers are highly effective, and using the wrong input layer causes large decoder-facing degradation. But simple moment alignment does not emulate those layers, and small learned adapters recover only a small fraction of the lost performance.
+The main lesson is that cross-session adaptation should not be treated as a single fixed correction. The native T15 input layers are highly effective, and using the wrong input layer causes large decoder-facing degradation. But simple moment alignment does not emulate those layers, and learned adapters recover only part of the lost performance even when input-layer calibration is trained longer.
 
 The most useful low-cost intervention is not a new adapter, but a better choice of existing input layer. A short unlabeled beginning-of-day window is enough to choose a past layer that recovers much of the fixed-source loss. Yet the strongest simple policy is often even simpler: use the previous session. This changes the adaptation ladder. Recency should be the default prior; geometry should be used as an additional signal for detecting when the previous session is not the right source. This also suggests a practical memory mechanism: instead of overwriting old session adapters, the system should retain a library of past input-layer states and learn when the current session has returned to one of them.
 
@@ -349,7 +349,7 @@ A natural extension is to test whether the input-state library view applies not 
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark.
 
 \section{Conclusion}
-For T15 brain-to-text decoding, fixed non-native input layers break the decoder, moment correction is too weak, and small learned adapters recover only modestly. Most of the practical recovery comes from selecting a compatible past input layer. The immediately previous session is a strong default, while drift geometry is a measurable signal for deciding when that default may need to be overridden. This supports a recency-aware, geometry-guided adaptation ladder: start with the previous input state, measure drift geometry from a short unlabeled window, and move to stronger calibration only when the geometry indicates that simple source selection is not enough.
+For T15 brain-to-text decoding, fixed non-native input layers break the decoder, moment correction is too weak, and learned input adaptation recovers only part of the lost performance. Most of the practical recovery comes from selecting a compatible past input layer. The immediately previous session is a strong default, while drift geometry is a measurable signal for deciding when that default may need to be overridden. This supports a recency-aware, geometry-guided adaptation ladder: start with the previous input state, measure drift geometry from a short unlabeled window, and move to stronger calibration only when the geometry indicates that simple source selection is not enough.
 
 \section*{Ethical Statement}
 This work uses publicly released intracortical BCI datasets and reports only aggregate analyses. It does not attempt to infer private inner speech or deploy a decoder. Future extensions to inner-speech or cross-behavior state selection should include explicit intent-gating and privacy safeguards.

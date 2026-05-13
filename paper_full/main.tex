@@ -128,14 +128,14 @@ layers, or whether a bounded recent library is enough under the current geometry
 metric.
 
 \section{Experiments}
-We organize the empirical study into six experiments, each paired with a table or figure. First, we stress-test the official T15 decoder under non-native input layers and place moment corrections and learned adapters on a single adaptation ladder. Second, we ask whether a short beginning-of-day window can choose a useful past input layer. Third, we analyze reusable input-state libraries and non-recent source matches. Fourth, we test gating and drift fingerprints. Finally, we add two geometry-only supporting checks: T12 longitudinal robustness and inner-speech behavior geometry.
+We organize the empirical study into six experiments, each paired with a table or figure. The T15 experiments are the main decoder-facing results; T12 and inner-speech analyses are supporting geometry-only checks. The experiments follow an adaptation ladder: fixed source $\rightarrow$ moment correction $\rightarrow$ learned calibration $\rightarrow$ source selection $\rightarrow$ recency/library policies $\rightarrow$ geometry-only supporting checks.
 
 \subsection{Cross-Day Stress Test and Adaptation Ladder}
 Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the local evaluation reproduces the expected behavior of the official checkpoint. When all sessions are forced through non-native source input layers, PER rises to 22.67--34.43\%, harming 40/41 sessions for each source choice.
 
 \begin{table}[t]
 \centering
-\caption{T15 decoder-facing stress test and adaptation ladder. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials.}
+\caption{T15 decoder-facing stress test and adaptation ladder. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials. Lower PER is better.}
 \scriptsize
 \begin{tabular}{lccc}
 \toprule
@@ -169,11 +169,11 @@ Supervised diagonal affine and input-layer calibration improve PER beyond moment
 \subsection{Beginning-of-Day Source Selection}
 Geometry-guided source selection gives a much stronger recovery than directly adapting a fixed middle source. In an offline all-candidate setting, choosing the nearest non-native input layer by covariance geometry reaches 11.38\% PER. In a stricter past-only setting, it reaches 13.58\% PER on 40 sessions, compared with 22.76\% for the fixed middle source on the same sessions.
 
-The beginning-of-day version is more realistic. With only the first $K$ unlabeled trials used to estimate target geometry, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets. This prior has a time horizon: previous-source PER is 9.97\% when the last available input state is 0--3 days old, 13.75\% at 4--14 days, and 24.54\% beyond two weeks. Thus previous is a strong default only when it is truly recent.
+The beginning-of-day version is more realistic. Here, $K$ denotes the first $K$ beginning-of-day trials used for calibration or geometry estimation; evaluation is performed only on the remaining trials. With this protocol, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets. This prior has a time horizon: previous-source PER is 9.97\% when the last available input state is 0--3 days old, 13.75\% at 4--14 days, and 24.54\% beyond two weeks. Thus previous is a strong default only when it is truly recent.
 
 \begin{table}[t]
 \centering
-\caption{Beginning-of-day source selection on remaining validation trials. Previous-session recency is the strongest simple baseline, while K-shot geometry selection remains close and often selects non-previous sources.}
+\caption{Beginning-of-day source selection on remaining validation trials. Previous-session recency is the strongest simple baseline, while K-shot geometry selection remains close and often selects non-previous sources. Lower PER is better.}
 \small
 \begin{tabular}{lccc}
 \toprule
@@ -251,6 +251,7 @@ policy under the current covariance-nearest rule.}
 \end{figure}
 
 \subsection{Gating and Drift Fingerprints}
+This experiment asks why geometry is useful but hard to deploy: can it safely override recency, and when do older states actually help?
 Since geometry sometimes chooses older sources, we tested whether a simple distance-ratio gate can improve over recency: keep the previous source unless the geometry-selected source is at least an $\alpha$ fraction closer in covariance distance. This rule does not yet produce a meaningful improvement. At $\alpha=0.9$, it ties previous at $K=5$, is slightly worse at $K=10$ (12.90\% vs 12.84\%), and improves only marginally at $K=20$ (12.18\% vs 12.21\%). At $\alpha=1.0$, it approaches unconditional geometry selection and becomes worse. Geometry is therefore a useful candidate signal, but a deployable gate needs richer confidence features.
 
 To test whether this failure is merely due to a poor hand-chosen threshold, we
@@ -266,7 +267,7 @@ therefore still not enough; future gates need richer confidence signals.
 \centering
 \caption{Leave-one-session-out learned gate. The gate defaults to the previous
 source and learns a one-feature decision stump for when to override with the
-geometry-selected older source. It gives only a tiny gain at $K=20$.}
+geometry-selected older source. It gives only a tiny gain at $K=20$. Lower PER is better.}
 \small
 \begin{tabular}{lcccc}
 \toprule
@@ -334,7 +335,7 @@ T12 diagnostic blocks provide a secondary geometry-only check. Using spike-power
 \centering
 \caption{T12 diagnostic-block feature robustness. Across spike-power and
 threshold-crossing variants, covariance distance increases with temporal
-separation and geometry sometimes selects older non-previous sessions.}
+separation and geometry sometimes selects older non-previous sessions. This is a geometry-only supporting check.}
 \small
 \begin{tabular}{lccc}
 \toprule
@@ -367,7 +368,7 @@ recording days: intended speech behavior is another axis of neural geometry.
 \begin{table}[t]
 \centering
 \caption{Preliminary inner-speech behavior-geometry feasibility. This analysis
-is geometry-only and does not evaluate decoding.}
+is a supporting geometry-only check and does not evaluate decoding.}
 \small
 \begin{tabular}{lccc}
 \toprule

@@ -334,11 +334,11 @@ def build_overall_summary(trials: pd.DataFrame, session_summary: pd.DataFrame) -
     for k, k_trials in trials.groupby("calibration_trials"):
         none = k_trials[k_trials["method"] == "none"]
         native = k_trials[k_trials["method"] == "native-day"]
-        if none.empty or native.empty:
+        if none.empty:
             continue
         none_weighted = weighted_per(none)
-        native_weighted = weighted_per(native)
-        gap = none_weighted - native_weighted
+        native_weighted = weighted_per(native) if not native.empty else math.nan
+        gap = none_weighted - native_weighted if not native.empty else math.nan
         none_by_session = session_summary[
             (session_summary["calibration_trials"] == k) & (session_summary["method"] == "none")
         ][["session", "mean_PER"]].rename(columns={"mean_PER": "none_mean_PER"})
@@ -356,7 +356,7 @@ def build_overall_summary(trials: pd.DataFrame, session_summary: pd.DataFrame) -
                     "trial_mean_PER": float(frame["PER"].mean()),
                     "median_trial_PER": float(frame["PER"].median()),
                     "improvement_vs_none": none_weighted - method_weighted,
-                    "recovery_fraction": (none_weighted - method_weighted) / gap if gap > 0 else math.nan,
+                    "recovery_fraction": (none_weighted - method_weighted) / gap if pd.notna(gap) and gap > 0 else math.nan,
                     "sessions_improved_vs_none": int((joined["mean_PER"] < joined["none_mean_PER"]).sum()) if method != "none" else 0,
                     "sessions_harmed_vs_none": int((joined["mean_PER"] > joined["none_mean_PER"]).sum()) if method != "none" else 0,
                     "num_sessions": int(joined["session"].nunique()),

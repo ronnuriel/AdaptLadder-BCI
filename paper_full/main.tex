@@ -468,7 +468,14 @@ stack. A full deployment study should also test word error rate,
 language-model decoding, and closed-loop or online adaptation. Similarly, the
 T12 and inner-speech results are intentionally geometry-only; future work should
 ask whether the same input-state and behavior-state structure improves actual
-decoding when suitable checkpoints and evaluation pipelines are available.
+decoding when suitable checkpoints and evaluation pipelines are available. A
+further direction is to test whether the input-state library view extends beyond
+speech and motor decoding to cognitive or memory-related neural recordings.
+Recent human hippocampal and entorhinal single-neuron work shows that neural
+populations encode the temporal structure of experience~\cite{tacikowski2024human}.
+Such datasets could test whether geometry-guided state retrieval is specific to
+speech BCI drift, or whether it reflects a broader principle of reusable neural
+state organization.
 
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The inner-speech analysis is also geometry-only; it does not decode imagined speech or evaluate a communication system. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark. We focus the main claims on $K\leq20$; larger calibration windows can be informative as feasibility checks, but in this validation split they consume a large fraction of the available session and are therefore not treated as minimal calibration.

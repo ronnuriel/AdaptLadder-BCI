@@ -11,6 +11,7 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage[switch]{lineno}
 
 % Comment out for camera-ready if requested by the venue.
@@ -387,6 +388,32 @@ The main lesson is that cross-session adaptation should not be treated as a sing
 
 A practical interpretation is a beginning-of-day triage procedure. The system should first try the previous input state, because it is the strongest simple default when it is truly recent. If short-window geometry suggests that the new session resembles an older stored state, the system can retrieve that state. If no stored state appears reliable, lightweight residual calibration can update the input mapping while leaving the GRU backbone and output head frozen.
 
+Table~\ref{tab:deployment-ladder} summarizes the practical interpretation:
+the system should not perform the same update every day. Instead, it should
+start from the cheapest reliable action and escalate only when the beginning-of-day
+evidence suggests that the current input state is no longer reliable.
+
+\begin{table}[t]
+\centering
+\caption{Deployment interpretation of the adaptation ladder. The goal is not to
+apply every adaptation step every day, but to choose the lightest action that is
+supported by the beginning-of-day evidence.}
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.29\linewidth}>{\raggedright\arraybackslash}p{0.34\linewidth}@{}}
+\toprule
+Situation & Suggested action & Evidence in this audit \\
+\midrule
+Recent previous state & Reuse previous layer & strongest simple baseline \\
+Fixed-source mismatch & Avoid fixed source & 22.67--34.43\% PER \\
+Mean/scale shift only & Moment correction insufficient & $\sim$22.7\% PER \\
+Small labeled window & Input calibration & partial recovery at $K=20$ \\
+Non-recent match & Retrieve older state & lower subspace mismatch \\
+Behavior shift & Index behavior state & inner-speech geometry \\
+\bottomrule
+\end{tabular}
+\label{tab:deployment-ladder}
+\end{table}
+
 The most useful low-cost intervention is not a new adapter, but a better choice of existing input layer. A short unlabeled beginning-of-day window is enough to choose a past layer that recovers much of the fixed-source loss. Yet the strongest simple policy is often even simpler: use the previous session. This changes the adaptation ladder. Recency should be the default prior; geometry should be used as an additional signal for detecting when the previous session is not the right source. This also suggests a practical memory mechanism: instead of overwriting old session adapters, the system should retain a library of past input-layer states and learn when the current session has returned to one of them.
 
 The failed distance-ratio override is also informative. It shows that geometry is not automatically a better policy than recency. The drift-fingerprint analysis suggests that the next gate should not rely only on covariance distance; subspace mismatch appears more informative for deciding when an older state is worth retrieving. A future gate should likely combine subspace features with distance margin, previous-source rank, temporal gap, session quality, decoder confidence, and perhaps hidden-state or logit-space diagnostics.
@@ -415,6 +442,7 @@ For T15 brain-to-text decoding, fixed non-native input layers break the decoder,
 \section*{Ethical Statement}
 This work uses publicly released intracortical BCI datasets and reports only aggregate analyses. It does not attempt to infer private inner speech or deploy a decoder. Future extensions to inner-speech or cross-behavior state selection should include explicit intent-gating and privacy safeguards.
 
+\clearpage
 \bibliographystyle{named}
 \bibliography{ijcai26}
 

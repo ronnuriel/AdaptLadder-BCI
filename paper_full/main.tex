@@ -398,17 +398,17 @@ evidence suggests that the current input state is no longer reliable.
 \caption{Deployment interpretation of the adaptation ladder. The goal is not to
 apply every adaptation step every day, but to choose the lightest action that is
 supported by the beginning-of-day evidence.}
-\small
+\scriptsize
 \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.29\linewidth}>{\raggedright\arraybackslash}p{0.34\linewidth}@{}}
 \toprule
 Situation & Suggested action & Evidence in this audit \\
 \midrule
-Recent previous state & Reuse previous layer & strongest simple baseline \\
+Recent state & Reuse previous & strongest baseline \\
 Fixed-source mismatch & Avoid fixed source & 22.67--34.43\% PER \\
 Mean/scale shift only & Moment correction insufficient & $\sim$22.7\% PER \\
-Small labeled window & Input calibration & partial recovery at $K=20$ \\
+Labeled $K$ trials & Calibrate input & partial recovery \\
 Non-recent match & Retrieve older state & lower subspace mismatch \\
-Behavior shift & Index behavior state & inner-speech geometry \\
+Behavior shift & Index behavior & inner-speech geometry \\
 \bottomrule
 \end{tabular}
 \label{tab:deployment-ladder}

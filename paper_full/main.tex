@@ -60,6 +60,8 @@ In speech BCI specifically, a recent preprint proposes adversarial session-invar
 
 \textbf{Official baseline.} The decoder contains learned day-specific input layers, a GRU backbone, and an output layer over phoneme classes. In the native-day condition, each session uses its own input layer. In cross-day stress tests, target sessions use a fixed or selected non-native source input layer while the rest of the decoder remains unchanged.
 
+\textbf{Evaluation splits.} The main T15 decoder-facing experiments use the validation/test sessions provided with the official dataset. In this split, sessions contain a limited number of held-out trials, so our beginning-of-day experiments treat $K \leq 20$ as the main minimal-calibration regime: the first $K$ trials are used for geometry estimation or supervised input calibration, and all reported PER is computed only on the remaining trials. Larger windows, such as $K=40$, are useful as exploratory feasibility checks but consume a large fraction of this split and are therefore not used as the main claim. T12 and inner-speech experiments are used only as geometry-only supporting analyses and are not evaluated with decoder PER.
+
 \textbf{T12 diagnostic blocks.} As a secondary check, we analyze diagnostic blocks from the T12 high-performance speech neuroprosthesis dataset~\cite{willett2023speech}. This is a geometry-only analysis of spike-power and threshold-crossing feature variants; we do not reproduce the T12 decoder or report T12 PER.
 
 \section{Methods}

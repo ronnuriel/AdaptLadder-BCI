@@ -450,18 +450,25 @@ geometry is not treated as a universal replacement for recency, and calibration
 is not treated as a reset. Instead, both are used as escalation steps when the
 cheaper prior state is no longer trustworthy.
 
-\textbf{Future directions.}
-The clearest next step is a confidence-aware policy that decides when to reuse,
-retrieve, or calibrate. Our simple gates show that covariance distance alone is
-too weak as a decision rule, while the drift fingerprints suggest that subspace
-mismatch is a more informative signal for older-state retrieval. A stronger
-policy should combine temporal gap, subspace margin, source rank, decoder
-confidence, session quality, and possibly hidden-state or logit-space features.
-A second direction is to evaluate the same ladder with word error rate and a
-language-model decoding stack, rather than greedy PER alone. Finally, the
-geometry-only T12 and inner-speech analyses should be upgraded, when possible,
-to decoder-facing evaluations. These extensions would test whether the same
-input-state view holds across participants, tasks, and speech modes.
+\textbf{Future deployment roadmap.}
+The next step is to turn the adaptation ladder into an explicit online policy.
+Such a policy should not ask only whether geometry can beat recency. Instead, it
+should decide whether the current session is close enough to reuse the previous
+input state, whether an older stored state is a better geometric match, or
+whether labeled residual calibration is required. Our exploratory analyses
+suggest that this decision should combine temporal gap, subspace mismatch,
+source-library rank, decoder confidence, and session-quality features. This
+provides a practical path from an offline adaptation audit toward a deployable
+BCI calibration controller.
+
+A second direction is to evaluate the same ladder with stronger decoding metrics
+and additional datasets. The present study reports greedy phoneme error rate,
+which isolates decoder-facing input mismatch without relying on a language-model
+stack. A full deployment study should also test word error rate,
+language-model decoding, and closed-loop or online adaptation. Similarly, the
+T12 and inner-speech results are intentionally geometry-only; future work should
+ask whether the same input-state and behavior-state structure improves actual
+decoding when suitable checkpoints and evaluation pipelines are available.
 
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The inner-speech analysis is also geometry-only; it does not decode imagined speech or evaluate a communication system. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark. We focus the main claims on $K\leq20$; larger calibration windows can be informative as feasibility checks, but in this validation split they consume a large fraction of the available session and are therefore not treated as minimal calibration.

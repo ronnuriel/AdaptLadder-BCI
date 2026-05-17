@@ -435,6 +435,34 @@ across behaviors. Future input-state libraries may need to index both recording
 state and intended speech mode, because a new neural geometry may reflect
 session drift, speech-mode shift, or both.
 
+\textbf{Deployment implications.}
+The practical value of the adaptation ladder is that it avoids treating every
+new day as a full recalibration problem. A deployed system could begin with a
+small beginning-of-day window and ask a sequence of increasingly expensive
+questions. First, is the previous input state still recent and geometrically
+plausible? If so, the system can reuse it with no training. Second, does the new
+session resemble an older stored state more than the immediately previous one?
+If so, geometry can retrieve that state from a compact input-state library.
+Third, if stored states are not reliable and labels are available, a residual
+input calibration can update only the input transform while keeping the GRU
+backbone and output head fixed. This interpretation is deliberately conservative:
+geometry is not treated as a universal replacement for recency, and calibration
+is not treated as a reset. Instead, both are used as escalation steps when the
+cheaper prior state is no longer trustworthy.
+
+\textbf{Future directions.}
+The clearest next step is a confidence-aware policy that decides when to reuse,
+retrieve, or calibrate. Our simple gates show that covariance distance alone is
+too weak as a decision rule, while the drift fingerprints suggest that subspace
+mismatch is a more informative signal for older-state retrieval. A stronger
+policy should combine temporal gap, subspace margin, source rank, decoder
+confidence, session quality, and possibly hidden-state or logit-space features.
+A second direction is to evaluate the same ladder with word error rate and a
+language-model decoding stack, rather than greedy PER alone. Finally, the
+geometry-only T12 and inner-speech analyses should be upgraded, when possible,
+to decoder-facing evaluations. These extensions would test whether the same
+input-state view holds across participants, tasks, and speech modes.
+
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. Greedy PER is lighter than full WER and avoids the language-model/Redis evaluation stack. T12 is geometry-only and should not be interpreted as T12 PER replication. The inner-speech analysis is also geometry-only; it does not decode imagined speech or evaluate a communication system. The learned adapter and K-shot source-selection experiments simulate a beginning-of-day calibration window within the validation split and evaluate only on the remaining trials. They are intended to map adaptation rungs, not to optimize a final deployment benchmark. We focus the main claims on $K\leq20$; larger calibration windows can be informative as feasibility checks, but in this validation split they consume a large fraction of the available session and are therefore not treated as minimal calibration.
 

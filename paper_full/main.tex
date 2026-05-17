@@ -39,23 +39,23 @@ We examine this question in the official T15 brain-to-text GRU baseline from a r
 
 The contribution is not a new speech decoder. Instead, we provide a decoder-facing adaptation audit:
 \begin{itemize}
-    \item Non-native input layers cause a large PER degradation in T15.
-    \item Mean/variance correction is not enough; longer input-layer calibration improves recovery but remains incomplete.
-    \item Geometry-guided source selection recovers much of the fixed-source degradation, but previous-session recency is the strongest simple baseline.
-    \item T12 diagnostic blocks show a similar geometry/recency structure in a second dataset, without claiming T12 decoder replication.
+    \item Non-native input layers cause a large decoder-facing degradation in T15, increasing PER from 9.06\% native-day to 22.67--34.43\% under fixed non-native input layers.
+    \item Mean/variance correction is not enough: target z-scoring and moment matching remain near 22.7\% PER, while input-layer calibration from $K=20$ trials improves the fixed-middle stress setting to 18.59\% PER but remains incomplete.
+    \item Geometry-guided source selection recovers much of the fixed-source degradation: at $K=20$, K-shot geometry reaches 12.74\% PER, while previous-session recency is even stronger at 12.21\%.
+    \item T12 diagnostic blocks and inner-speech behavior blocks provide geometry-only support, including positive T12 days--distance correlations and 96.15\% nearest-behavior accuracy in inner-speech blocks.
 \end{itemize}
 
 We do not claim that neural drift geometry is new. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable for choosing among existing input-layer states and for framing recency as an explicit adaptation prior.
 
 \section{Related Work}
-Intracortical communication BCIs have advanced rapidly from handwriting-based brain-to-text decoding~\cite{willett2021handwriting,fan2023corp} to speech neuroprostheses that decode attempted speech into text or spoken output~\cite{willett2023speech,card2024accurate}. These systems commonly rely on recurrent neural decoders and session-specific adaptation or recalibration to maintain performance as recordings change over time.
-
-Cross-session stability has also been studied through the lens of neural geometry. Manifold-alignment methods can stabilize fixed decoders by aligning low-dimensional neural activity across recording instabilities~\cite{degenhart2020stabilization}, and recent dynamics-aware approaches such as NoMAD use temporal structure to perform unsupervised alignment over weeks to months~\cite{karpowicz2025nomad}. In speech BCI specifically, a recent preprint proposes adversarial session-invariant learning to reduce session-specific information while preserving phoneme decoding structure~\cite{zhang2026align}. Continual recalibration with pseudo-labels provides a complementary route, using language-model corrections to update communication decoders online~\cite{fan2023corp}.
-
-Our work is narrower. We do not train a new robust decoder or propose a full recalibration method. Instead, we audit the official T15 decoder to ask which low-cost adaptation rungs are sufficient, when they fail, and how recency and drift geometry can guide source-layer choice.
-
+\subsection{Brain-to-Text BCIs}
+Intracortical communication BCIs have advanced rapidly from handwriting-based brain-to-text decoding~\cite{willett2021handwriting,fan2023corp} to speech neuroprostheses that decode attempted speech into text or spoken output~\cite{willett2023speech,card2024accurate}. These systems commonly rely on recurrent neural decoders and session-specific adaptation or recalibration to maintain performance as recordings change over time. Recent work also explores transferring pretrained speech representations to brain decoding, for example by adapting Wav2Vec2-style models to neural features~\cite{fiedler2025wav2vecbrain}. Our work is complementary: rather than training a new speech decoder, we audit the official T15 decoder and ask which input-adaptation rungs are sufficient.
+\subsection{Cross-Session Stability and Neural Geometry}
+Cross-session stability has been studied through the lens of neural geometry. Manifold-alignment methods can stabilize fixed decoders by aligning low-dimensional neural activity across recording instabilities~\cite{degenhart2020stabilization}, and recent dynamics-aware approaches such as NoMAD use temporal structure to perform unsupervised alignment over weeks to months~\cite{karpowicz2025nomad}. Our analysis uses this geometry perspective in a narrower decoder-facing setting: we measure whether short-window geometry can guide selection among existing day-specific input-layer states.
+\subsection{Session-Invariant and Continual Adaptation}
+In speech BCI specifically, a recent preprint proposes adversarial session-invariant learning to reduce session-specific information while preserving phoneme decoding structure~\cite{zhang2026align}. Continual recalibration with pseudo-labels provides a complementary route, using language-model corrections to update communication decoders online~\cite{fan2023corp}. Our work does not propose a new invariant decoder or full recalibration method. Instead, it audits low-cost choices available before retraining: moment correction, lightweight input calibration, previous-session reuse, and geometry-guided source-layer retrieval.
 \section{Data and Decoder}
-\textbf{T15.} The main experiments use T15 copy-task neural features from the official brain-to-text dataset~\cite{card2024accurate}. We evaluate 41 validation sessions with ground-truth phoneme labels. Neural inputs are passed through the official GRU checkpoint and decoded greedily at the phoneme level using CTC collapse.
+\textbf{T15.} The main experiments use T15 copy-task neural features from the official brain-to-text dataset~\cite{card2024accurate}. We evaluate 41 validation sessions with ground-truth phoneme labels. Neural inputs are passed through the official GRU checkpoint and decoded greedily at the phoneme level. During evaluation, repeated symbols and blank tokens are removed using the standard CTC collapse rule before computing PER.
 
 \textbf{Official baseline.} The decoder contains learned day-specific input layers, a GRU backbone, and an output layer over phoneme classes. In the native-day condition, each session uses its own input layer. In cross-day stress tests, target sessions use a fixed or selected non-native source input layer while the rest of the decoder remains unchanged.
 
@@ -63,7 +63,7 @@ Our work is narrower. We do not train a new robust decoder or propose a full rec
 
 \section{Methods}
 \subsection{Decoder-Facing Metrics}
-For each T15 validation trial, we compute greedy CTC phoneme predictions and phoneme error rate (PER). We report phoneme-weighted PER unless otherwise stated. Quality diagnostics such as blank rate, confidence, and entropy are saved, but the core results use PER.
+For each T15 validation trial, we compute greedy phoneme predictions from the CTC output stream and then apply CTC collapse before computing phoneme error rate (PER). We report phoneme-weighted PER unless otherwise stated. Quality diagnostics such as blank rate, confidence, and entropy are saved, but the core results use PER.
 
 For a set of trials $\mathcal{D}$, the reported PER is
 \[
@@ -99,7 +99,7 @@ These baselines test whether the day-specific input layers can be approximated
 by channel-wise distribution alignment. Diagonal affine and input-layer
 calibration are supervised small-calibration probes: the GRU and output head
 remain frozen, and only a small input transform is learned from the first $K$
-validation trials.
+validation trials using CTC loss.
 
 \subsection{Drift Geometry and Source Selection}
 For each source-target pair, we compute temporal distance, mean and scale shifts, relative covariance shift, CORAL-style distance, and PCA subspace distances. We then select a source input layer by nearest covariance geometry. To approximate deployment, a K-shot variant estimates target geometry from only the first $K \in \{5,10,20\}$ unlabeled validation trials and evaluates on the remaining trials.

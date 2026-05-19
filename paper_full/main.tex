@@ -143,21 +143,23 @@ Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the loc
 
 \begin{table}[t]
 \centering
-\caption{T15 decoder-facing stress test and adaptation ladder. Numbers are phoneme-weighted average PER across T15 validation sessions. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials. Lower PER is better.}
+\caption{T15 decoder-facing stress test and adaptation ladder. Mean, best-session, and worst-session values are phoneme-weighted PER. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials. Lower PER is better.}
 \scriptsize
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.31\linewidth}c>{\raggedright\arraybackslash}p{0.38\linewidth}@{}}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccc}
 \toprule
-Condition & Avg. PER $\downarrow$ & What it means \\
+Condition & Mean PER $\downarrow$ & Best session & Worst session \\
 \midrule
-Native-day & 9.06\% & Correct input layer per day \\
-Fixed early & 28.81\% & Wrong early input layer hurts decoding \\
-Fixed middle & 22.67\% & Cross-day stress source \\
-Fixed late & 34.43\% & Wrong late input layer hurts decoding \\
-Moment match & 22.73\% & Mean/variance matching fails \\
-Diag. affine, $K=20$ & 20.21\% & Small adapter helps a little \\
-Input layer, $K=20$ & 18.59\% & Best small calibration, still not native \\
+Native-day & 9.06\% & 0.80\% (11-19) & 23.82\% (03-14) \\
+Fixed early & 28.81\% & 7.38\% (08-13) & 58.28\% (03-14) \\
+Fixed middle & 22.67\% & 1.20\% (11-19) & 56.44\% (03-30) \\
+Fixed late & 34.43\% & 16.40\% (01-12) & 49.04\% (07-19) \\
+Moment match & 22.73\% & 1.20\% (11-19) & 56.90\% (03-30) \\
+Diag. affine, $K=20$ & 20.21\% & 1.94\% (11-26) & 53.26\% (03-30) \\
+Input layer, $K=20$ & 18.59\% & 2.46\% (11-26) & 52.23\% (03-30) \\
 \bottomrule
 \end{tabular}
+}
 \label{tab:ladder}
 \end{table}
 

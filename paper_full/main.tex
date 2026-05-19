@@ -143,20 +143,19 @@ Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the loc
 
 \begin{table}[t]
 \centering
-\caption{T15 decoder-facing stress test and adaptation ladder. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials. Lower PER is better.}
+\caption{T15 decoder-facing stress test and adaptation ladder. Numbers are phoneme-weighted average PER across T15 validation sessions. Fixed-source and moment-correction rows use the middle source \texttt{t15.2023.11.26}. Learned adapter rows use $K=20$ calibration trials and are evaluated on remaining trials. Lower PER is better.}
 \scriptsize
-\begin{tabular}{lcc}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.31\linewidth}c>{\raggedright\arraybackslash}p{0.38\linewidth}@{}}
 \toprule
-Condition & PER & Note \\
+Condition & Avg. PER $\downarrow$ & What it means \\
 \midrule
-Native-day & 9.06\% & correct layer \\
-Fixed early & 28.81\% & 40/41 harmed \\
-Fixed middle & 22.67\% & stress source \\
-Fixed late & 34.43\% & 40/41 harmed \\
-Target z-score & 22.75\% & fails \\
-Moment match & 22.73\% & fails \\
-Diag. affine, $K=20$ & 20.21\% & adapter \\
-Input layer, $K=20$ & 18.59\% & 20 epochs \\
+Native-day & 9.06\% & Correct input layer per day \\
+Fixed early & 28.81\% & Wrong early input layer hurts decoding \\
+Fixed middle & 22.67\% & Cross-day stress source \\
+Fixed late & 34.43\% & Wrong late input layer hurts decoding \\
+Moment match & 22.73\% & Mean/variance matching fails \\
+Diag. affine, $K=20$ & 20.21\% & Small adapter helps a little \\
+Input layer, $K=20$ & 18.59\% & Best small calibration, still not native \\
 \bottomrule
 \end{tabular}
 \label{tab:ladder}

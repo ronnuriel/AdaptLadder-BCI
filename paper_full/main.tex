@@ -46,7 +46,19 @@ The contribution is not a new speech decoder. Instead, we provide a decoder-faci
     \item T12 diagnostic blocks and inner-speech behavior blocks provide geometry-only support, including positive T12 days--distance correlations and 96.15\% nearest-behavior accuracy in inner-speech blocks.
 \end{itemize}
 
-We do not claim that neural drift geometry is new. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable for choosing among existing input-layer states and for framing recency as an explicit adaptation prior.
+We do not claim that neural drift geometry is new. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable for choosing among existing input-layer states and for framing recency as an explicit adaptation prior. Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/adaptation_ladder_overview.png}
+\caption{Conceptual overview of the adaptation ladder. A short beginning-of-day
+window is used to estimate the current input state and compare it to a library
+of past states. The triage controller chooses one of three actions: reuse the
+previous input layer, retrieve an older state by geometry, or apply lightweight
+residual calibration to the input layer only, while keeping the shared GRU
+decoder frozen.}
+\label{fig:conceptual-overview}
+\end{figure*}
 
 \section{Related Work}
 \subsection{Brain-to-Text BCIs}
@@ -172,7 +184,19 @@ Supervised diagonal affine and input-layer calibration improve PER beyond moment
 \subsection{Beginning-of-Day Source Selection}
 Geometry-guided source selection gives a much stronger recovery than directly adapting a fixed middle source. In an offline all-candidate setting, choosing the nearest non-native input layer by covariance geometry reaches 11.38\% PER. In a stricter past-only setting, it reaches 13.58\% PER on 40 sessions, compared with 22.76\% for the fixed middle source on the same sessions.
 
-The beginning-of-day version is more realistic. Here, $K$ denotes the first $K$ beginning-of-day trials used for calibration or geometry estimation; evaluation is performed only on the remaining trials. With this protocol, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets. This prior has a time horizon: previous-source PER is 9.97\% when the last available input state is 0--3 days old, 13.75\% at 4--14 days, and 24.54\% beyond two weeks. Thus previous is a strong default only when it is truly recent.
+The beginning-of-day version is more realistic. Here, $K$ denotes the first $K$ beginning-of-day trials used for calibration or geometry estimation; evaluation is performed only on the remaining trials. With this protocol, past-only source selection reaches 14.00\%, 13.19\%, and 12.74\% PER at $K=5,10,20$, recovering 62.8\%, 68.1\%, and 71.3\% of the fixed-source loss. However, the immediately previous input layer is even stronger: 13.09\%, 12.84\%, and 12.21\% PER on the same subsets. This prior has a time horizon: previous-source PER is 9.97\% when the last available input state is 0--3 days old, 13.75\% at 4--14 days, and 24.54\% beyond two weeks. Thus previous is a strong default only when it is truly recent. Figure~\ref{fig:t15-geometry-map} visualizes the pairwise geometry underlying this source-selection problem.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/t15_geometry_heatmap_scatter_covariance.png}
+\caption{T15 longitudinal geometry map. Left: pairwise relative covariance
+shift between source and target sessions, ordered by date, shows a diagonal band
+of nearby sessions with similar input geometry. Right: covariance shift
+increases with temporal separation across source-target pairs (Spearman
+$\rho=0.85$), indicating that session geometry drifts with time while retaining
+non-monotonic structure.}
+\label{fig:t15-geometry-map}
+\end{figure*}
 
 \begin{table}[t]
 \centering

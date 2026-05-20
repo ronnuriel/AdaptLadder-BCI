@@ -243,6 +243,29 @@ A small number of difficult sessions, especially 2025-03-30 and 2025-03-14, domi
 
 The resulting adaptation ladder is sequential. First, reuse the previous input state when it is recent and geometrically plausible, since previous-session reuse is the strongest simple default. Second, if the beginning-of-day geometry suggests that an older stored state is closer to the target session, retrieve that older input state as a candidate rather than immediately calibrating. Third, if no stored state appears reliable and labels are available, perform lightweight residual calibration of the input layer only. This makes calibration an escalation step, not the default response to every new day.
 
+Table~\ref{tab:operational-ladder} summarizes the deployment interpretation of these results. The ladder is not a fixed sequence of updates to apply every day. Instead, the system should first ask whether the previous input state is still recent and plausible, then use geometry to retrieve older candidates when recency is stale or questionable, and only then use supervised calibration as an escalation step when stored states are unreliable.
+
+\begin{table*}[t]
+\centering
+\caption{Operational interpretation of the adaptation ladder. PER values are evidence from this audit rather than guaranteed deployment performance. Lower PER is better.}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.16\textwidth}p{0.15\textwidth}p{0.20\textwidth}p{0.15\textwidth}p{0.20\textwidth}@{}}
+\toprule
+Scenario & Naive action & Recommended ladder action & Evidence in this audit & Operational insight \\
+\midrule
+Recent previous state (0--3 days) & Reuse latest state & \textbf{Reuse previous} (zero-shot) & Previous source: 9.97\% PER & Recency wins when the last input state is truly recent; no labels or calibration are needed. \\
+Stale previous state ($>$14 days) & Reuse latest state anyway & \textbf{Check geometry and retrieve a stored candidate} & Previous degrades to 24.54\% PER; geometry $K=20$ reaches 12.74\% overall & The previous layer has a time horizon. Geometry should be used as a retrieval signal when recency is no longer trustworthy. \\
+No reliable stored state & Full retraining or blind reuse & \textbf{Residual input calibration} ($K=20$ labeled trials) & Fixed middle: 22.67\% $\rightarrow$ 18.59\% PER & Calibration helps, but remains far from native-day performance; use it as an escalation step. \\
+Simple distribution shift & Mean/scale correction & \textbf{Do not rely on moment matching} & Moment match: 22.73\% PER & Channel-wise mean/variance alignment does not capture the decoder-relevant drift. \\
+Geometry-selected older candidate & Always override previous & \textbf{Use a confidence gate} & At $K=20$, older selected in 11 sessions but wins in 3 & Geometry retrieves plausible candidates, but covariance distance alone is not reliable enough as a standalone policy. \\
+\bottomrule
+\end{tabular}
+\label{tab:operational-ladder}
+\end{table*}
+
+This operational view clarifies why geometry remains useful even though it does not outperform previous-session reuse on average. Recency is the default policy, but it has a limited time horizon. Geometry is valuable as a retrieval and warning signal when the previous input state is stale or geometrically implausible, while supervised calibration is reserved for cases where no stored state appears reliable.
+
 Geometry should not be treated as a replacement for recency. At $K=20$, it identifies older non-previous candidates in 11 sessions, but those candidates beat previous in only 3 cases. The drift-fingerprint analysis suggests that subspace mismatch is more informative than covariance distance alone when deciding whether an older state is worth retrieving. Future gates should combine subspace features, distance margins, temporal gap, decoder confidence, and session-quality diagnostics.
 
 This framing complements stronger decoder-backbone approaches. Pretrained speech models or language-model decoding may improve absolute performance, while input-state selection addresses a different deployment question: how to keep a fixed decoder usable across sessions with minimal calibration. Future work should test this ladder with WER, language-model decoding, closed-loop evaluation, and additional datasets. Preliminary alignment probes also suggest caution: geometry-based feature transformations such as covariance alignment may introduce harms, so geometry is currently more reliable as a retrieval signal than as an automatic feature transformation.

@@ -406,6 +406,8 @@ binnedTX / delay & 88.46\% & 20\% & 1.59 \\
 \section{Discussion}
 The main lesson is that cross-session adaptation should not be treated as a single fixed correction. The native T15 input layers are highly effective, and using the wrong input layer causes large decoder-facing degradation. But simple moment alignment does not emulate those layers, and learned adapters recover only part of the lost performance even when input-layer calibration is trained longer.
 
+A small number of difficult sessions dominate worst-case PER, especially 2025-03-30 and 2025-03-14. A sensitivity check excluding the worst one or two sessions preserves the qualitative ordering: fixed non-native layers remain strongly degraded, moment matching remains ineffective, input-layer calibration improves PER only partially, and previous/geometry source policies remain the strongest low-cost choices. We therefore retain all sessions in the main analysis and treat these difficult days as stress cases rather than exclusions.
+
 A practical interpretation is a beginning-of-day triage procedure. The system should first try the previous input state, because it is the strongest simple default when it is truly recent. If short-window geometry suggests that the new session resembles an older stored state, the system can retrieve that state. If no stored state appears reliable, lightweight residual calibration can update the input mapping while leaving the GRU backbone and output head frozen.
 
 Table~\ref{tab:deployment-ladder} summarizes the practical interpretation:

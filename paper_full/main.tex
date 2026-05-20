@@ -226,7 +226,7 @@ $K$ & Previous & Last 3 & Last 5 & All past \\
 
 A simple distance-ratio gate does not yet solve this problem. At $K=20$, the best simple override improves only marginally from 12.21\% to 12.18\% PER, and a leave-one-session-out decision stump improves only to 12.15\% while performing worse at smaller $K$. Older sources beat previous in only a minority of non-previous selections (3/11, 4/9, and 3/11 for $K=5,10,20$), so future gates need richer confidence features.
 
-To ask why older sources sometimes help, we compare drift fingerprints for target--previous and target--older-source pairs. Although older-source wins are rare, they are better explained by subspace geometry than by mean/scale shifts alone. When older sources win, they reduce the mean principal angle relative to previous by 1.37$^\circ$, 1.93$^\circ$, and 2.91$^\circ$ for $K=5,10,20$; when older sources lose, this subspace improvement is absent or reverses.
+To ask why older sources sometimes help, we compare drift fingerprints for target--previous and target--older-source pairs. Although older-source wins are rare, they are better explained by subspace geometry than by mean/scale shifts alone. When older sources win, they reduce the mean principal angle relative to previous by 1.37$^\circ$, 1.93$^\circ$, and 2.91$^\circ$ for $K=5,10,20$; when older sources lose, the same subspace advantage is absent.
 
 \begin{table}[t]
 \centering

@@ -42,8 +42,8 @@ Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: kee
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.96\textwidth]{figures/adaptation_ladder_overview.png}
-\caption{Recency-aware adaptation ladder for cross-session BCI drift. At the start of a new target session, the first $K$ trials are used to estimate neural feature geometry. The target geometry is compared to a library of past input states. The system first reuses the previous input layer as the default, retrieves an older candidate when geometry suggests a closer match, or performs lightweight input-layer calibration when stored states are unreliable. The shared GRU decoder and output head remain frozen throughout.}
+\includegraphics[width=0.90\textwidth]{figures/adaptation_ladder_overview.png}
+\caption{Recency-aware adaptation ladder. A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
 \label{fig:conceptual-overview}
 \end{figure*}
 

@@ -90,6 +90,8 @@ We compare this geometry policy to previous-session reuse, $s_{\mathrm{prev}}(t)
 \section{Experiments}
 We first audit decoder-facing adaptation on T15, then use T12 and inner-speech blocks as geometry-only supporting checks.
 
+Before presenting the detailed experiments, Table~\ref{tab:main-findings} summarizes the main empirical story. The results follow a simple adaptation ladder: wrong input states strongly degrade decoding, simple moment correction fails, small supervised calibration helps only partially, and the strongest low-cost intervention is to reuse or retrieve a compatible past input state.
+
 \begin{table}[t]
 \centering
 \caption{Main findings at a glance. Lower PER is better.}
@@ -109,6 +111,8 @@ Does geometry help? & Geometry, $K=20$: 12.74\% PER; older wins 3/11 & Geometry 
 \end{tabular}
 \label{tab:main-findings}
 \end{table}
+
+Thus, the central question becomes not whether adaptation is possible, but which input state should be used before any supervised calibration is attempted.
 
 \subsection{Cross-Day Stress Test and Adaptation Ladder}
 \textbf{Finding 1: the day-specific input layer is essential.}

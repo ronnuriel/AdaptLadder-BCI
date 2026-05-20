@@ -159,13 +159,12 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \subsection{Geometry Retrieves Older Candidates but Needs a Gate}
 The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.49\textwidth]{figures/t15_geometry_selected_lag_by_target.png}
-\includegraphics[width=0.49\textwidth]{figures/t15_geometry_previous_vs_selected_distance.png}
-\caption{Geometry-selected older sources are meaningful candidates but not reliable standalone decisions at $K=20$. Left: most target sessions select the immediately previous session, but several jump to older stored input states. Right: geometry-selected sources are closer in covariance distance by construction, but lower geometry distance does not always translate to lower PER. Green points indicate cases where the geometry-selected source outperforms previous; red points indicate cases where previous remains better.}
+\includegraphics[width=\linewidth]{figures/t15_geometry_previous_vs_selected_distance.png}
+\caption{Geometry retrieves closer candidates but is not a standalone policy. Points below the diagonal have a geometry-selected source that is closer than the previous source in covariance distance. Green points indicate cases where the geometry-selected source achieves lower PER; red points indicate cases where previous remains better.}
 \label{fig:geometry-nonprevious-story}
-\end{figure*}
+\end{figure}
 
 This motivates retaining a compact memory of input states rather than only the latest layer. We restrict K-shot geometry selection to previous only, the last 3 sessions, the last 5 sessions, or all past sessions. The immediately previous session remains the best aggregate policy, but a small recent library nearly matches all-past selection.
 

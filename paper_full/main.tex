@@ -78,7 +78,7 @@ For each T15 validation trial, we compute greedy phoneme predictions from the CT
 We avoid mixing PER with derived recovery percentages in the main result tables: lower PER is always better, and improvements are reported as direct PER changes.
 
 \subsection{Adaptation and Source Selection}
-We compare native-day decoding against three fixed non-native source layers: early (\texttt{t15.2023.08.13}), middle (\texttt{t15.2023.11.26}), and late (\texttt{t15.2025.04.13}). Using the middle source layer, we test a ladder of increasingly expensive input-side interventions: no correction, unsupervised mean/scale moment matching, supervised diagonal affine calibration, and supervised input-layer calibration. Moment methods, such as matching channel-wise mean and variance, test whether simple scalar distribution alignment is sufficient to explain the cross-session mismatch. Learned adapters use the first $K$ labeled trials and are evaluated on the remaining trials. The GRU backbone and output head remain frozen; only the input transform is learned using CTC loss.
+We compare native-day decoding against three fixed non-native source layers: early (\texttt{t15.2023.08.13}), middle (\texttt{t15.2023.11.26}), and late (\texttt{t15.2025.04.13}). Using the middle source layer, we test a ladder of increasingly expensive input-side interventions: no correction, unsupervised mean/scale moment matching, supervised diagonal affine calibration, and supervised input-layer calibration. Simple scalar normalizations, including target z-scoring and source moment matching, test whether channel-wise mean and variance alignment is sufficient to explain the cross-session mismatch. Learned adapters use the first $K$ labeled trials and are evaluated on the remaining trials. The GRU backbone and output head remain frozen; only the input transform is learned using CTC loss.
 
 \textbf{Neural feature geometry.} In this work, neural geometry means the shape of the neural population activity in feature space. Each time bin from each trial is treated as one neural-feature vector, so a session becomes a cloud of points in channel space. The covariance matrix summarizes how neural channels vary together, while subspace statistics summarize the dominant directions of population activity. Intuitively, two sessions are geometrically close if their neural activity clouds have similar shape, even if the sessions occur on different days. For K-shot source selection, the first $K$ unlabeled target trials are used to estimate the target covariance. We then compare this covariance to each past source session using relative Frobenius covariance distance and reuse the input layer of the closest past session:
 \[
@@ -103,7 +103,7 @@ Question & Result & Interpretation \\
 \midrule
 Does the native input state matter? & Native-day: 9.06\% PER & Correct day-specific input layers work well. \\
 What if the input state is wrong? & Fixed non-native: 22.67--34.43\% PER & Cross-session mismatch strongly degrades decoding. \\
-Is mean/scale correction enough? & Moment match: 22.73\% PER & Simple distribution matching fails. \\
+Is mean/scale correction enough? & Channel-wise moment match: 22.73\% PER & Simple distribution matching fails. \\
 Does small calibration solve it? & Input layer, $K=20$: 18.59\% PER & Calibration helps, but remains far from native-day. \\
 What is the best low-cost policy? & Previous source, $K=20$: 12.21\% PER & Recency is the strongest default. \\
 Does geometry help? & Geometry, $K=20$: 12.74\% PER; older wins 3/11 & Geometry retrieves candidates, but needs a gate. \\
@@ -129,7 +129,7 @@ Native-day & 9.06\% & 0.80\% (11-19) & 23.82\% (03-14) \\
 Fixed early & 28.81\% & 7.38\% (08-13) & 58.28\% (03-14) \\
 Fixed middle & 22.67\% & 1.20\% (11-19) & 56.44\% (03-30) \\
 Fixed late & 34.43\% & 16.40\% (01-12) & 49.04\% (07-19) \\
-Moment match & 22.73\% & 1.20\% (11-19) & 56.90\% (03-30) \\
+Channel-wise moment match & 22.73\% & 1.20\% (11-19) & 56.90\% (03-30) \\
 Diag. affine, $K=20$ & 20.21\% & 1.94\% (11-26) & 53.26\% (03-30) \\
 Input layer, $K=20$ & 18.59\% & 2.46\% (11-26) & 52.23\% (03-30) \\
 \bottomrule
@@ -181,7 +181,7 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 
 \subsection{Geometry Retrieves Older Candidates but Needs a Gate}
 \textbf{Finding 3: geometry retrieves older candidates, but does not reliably replace recency.}
-The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy: closer in geometry does not always mean lower PER.
+The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. When geometry incorrectly selects an older source, the mean penalty relative to previous-session reuse is 3.23 percentage points (median 3.49, max 4.55). Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy: closer in geometry does not always mean lower PER.
 
 \begin{figure}[t]
 \centering
@@ -257,7 +257,7 @@ Scenario & Naive action & Recommended ladder action & Evidence in this audit & O
 Recent previous state (0--3 days) & Reuse latest state & \textbf{Reuse previous} (zero-shot) & Previous source: 9.97\% PER & Recency wins when the last input state is truly recent; no labels or calibration are needed. \\
 Stale previous state ($>$14 days) & Reuse latest state anyway & \textbf{Check geometry and retrieve a stored candidate} & Previous degrades to 24.54\% PER; geometry $K=20$ reaches 12.74\% overall & The previous layer has a time horizon. Geometry should be used as a retrieval signal when recency is no longer trustworthy. \\
 No reliable stored state & Full retraining or blind reuse & \textbf{Residual input calibration} ($K=20$ labeled trials) & Fixed middle: 22.67\% $\rightarrow$ 18.59\% PER & Calibration helps, but remains far from native-day performance; use it as an escalation step. \\
-Simple distribution shift & Mean/scale correction & \textbf{Do not rely on moment matching} & Moment match: 22.73\% PER & Channel-wise mean/variance alignment does not capture the decoder-relevant drift. \\
+Simple distribution shift & Mean/scale correction & \textbf{Do not rely on moment matching} & Channel-wise moment match: 22.73\% PER & Channel-wise mean/variance alignment does not capture the decoder-relevant drift. \\
 Geometry-selected older candidate & Always override previous & \textbf{Use a confidence gate} & At $K=20$, older selected in 11 sessions but wins in 3 & Geometry retrieves plausible candidates, but covariance distance alone is not reliable enough as a standalone policy. \\
 \bottomrule
 \end{tabular}

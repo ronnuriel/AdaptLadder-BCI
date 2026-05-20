@@ -53,7 +53,7 @@ Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: kee
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.88\textwidth]{figures/adaptation_ladder_overview.png}
-\caption{Recency-aware adaptation ladder. A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
+\caption{\textbf{Recency-aware adaptation ladder.} A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
 \label{fig:conceptual-overview}
 \end{figure*}
 
@@ -110,7 +110,7 @@ Before presenting the detailed experiments, Table~\ref{tab:main-findings} summar
 
 \begin{table}[t]
 \centering
-\caption{Main findings at a glance. Lower PER is better.}
+\caption{\textbf{Main findings at a glance.} Lower PER is better.}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}p{0.32\linewidth}p{0.26\linewidth}p{0.31\linewidth}@{}}
@@ -259,7 +259,7 @@ Table~\ref{tab:operational-ladder} summarizes the deployment interpretation of t
 
 \begin{table*}[t]
 \centering
-\caption{Operational interpretation of the adaptation ladder. PER values are evidence from this audit rather than guaranteed deployment performance. Lower PER is better.}
+\caption{\textbf{Operational interpretation of the adaptation ladder.} PER values are evidence from this audit rather than guaranteed deployment performance. Lower PER is better.}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.08}
@@ -285,7 +285,7 @@ Geometry should not be treated as a replacement for recency. At $K=20$, it ident
 
 This framing complements stronger decoder-backbone approaches. Pretrained speech models or language-model decoding may improve absolute performance, while input-state selection addresses a different deployment question: how to keep a fixed decoder usable across sessions with minimal calibration. Future work should test this ladder with WER, language-model decoding, closed-loop evaluation, and additional datasets. Preliminary alignment probes also suggest caution: geometry-based feature transformations such as covariance alignment may introduce harms, so geometry is currently more reliable as a retrieval signal than as an automatic feature transformation.
 
-A further direction is to test whether the input-state library view extends beyond speech and motor decoding to cognitive or memory-related neural recordings. Recent human hippocampal and entorhinal single-neuron work shows that neural populations actively encode the temporal structure of experience~\cite{tacikowski2024human}. Such datasets could test whether geometry-guided state retrieval is specific to speech BCI drift, or whether it reflects a broader, domain-general principle of reusable neural state organization.
+Beyond motor and speech BCI, a further direction is to test whether the input-state library view extends to cognitive or memory-related neural recordings. Recent human hippocampal and entorhinal single-neuron work shows that neural populations actively encode the temporal structure of experience~\cite{tacikowski2024human}. Such datasets could test whether geometry-guided state retrieval is specific to speech BCI drift, or whether it reflects a broader, domain-general principle of reusable neural state organization.
 
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. We report greedy phoneme error rate rather than full WER or language-model decoding. T12 and inner-speech analyses are geometry-only and should not be interpreted as decoder replications. A practical input-state library also requires memory management. Although our results suggest that a small recent library can approach all-past selection, a deployed system may need to prune, cluster, or compress stored input states over months or years rather than retaining every past session. The learned-adapter and K-shot source-selection experiments simulate a beginning-of-day window within the validation split and evaluate only on remaining trials. Larger windows can be informative, but we focus on $K \leq 20$ as the minimal-calibration regime.

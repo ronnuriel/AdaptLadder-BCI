@@ -56,7 +56,6 @@ Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: kee
 \caption{Recency-aware adaptation ladder. A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
 \label{fig:conceptual-overview}
 \end{figure*}
-\clearpage
 
 \section{Related Work}
 Brain-to-text BCIs have progressed from handwriting-based decoding to high-performance speech neuroprostheses, but long-term use still requires session-specific adaptation or recalibration as neural recordings change over time~\cite{willett2021handwriting,willett2023speech,card2024accurate}. Cross-session stability has also been studied through neural geometry and manifold alignment: prior work shows that low-dimensional neural structure can be aligned across recording instabilities, and dynamics-aware methods can stabilize BCIs over longer timescales~\cite{degenhart2020stabilization,karpowicz2025nomad}. Our setting is narrower: rather than learning a new invariant decoder, we ask whether short-window geometry can choose among existing day-specific input states. Continual recalibration and session-invariant learning provide complementary ways to update or regularize decoders~\cite{fan2023corp,zhang2026align}; here, we audit low-cost actions available before retraining: previous-session reuse, geometry-guided source retrieval, and lightweight input-layer calibration.

@@ -157,7 +157,7 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \end{table}
 
 \subsection{Geometry Retrieves Older Candidates but Needs a Gate}
-The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy.
+The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy: closer in geometry does not always mean lower PER.
 
 \begin{figure}[t]
 \centering

@@ -51,7 +51,7 @@ We do not claim that neural drift geometry is new. Rather, we show that in a dep
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.96\textwidth]{figures/adaptation_ladder_overview.png}
-\caption{Recency-aware input-state selection for cross-session BCI drift. For a new target session, the first $K$ trials are used to estimate neural feature geometry. Each session is represented as a cloud of neural feature vectors, summarized by covariance and subspace statistics. The target geometry is compared to a library of past input states. The system first reuses the previous input layer when it is recent and plausible; otherwise, geometry can retrieve an older candidate state. If no stored state is reliable, only the input layer is lightly calibrated while the shared GRU decoder remains frozen.}
+\caption{Recency-aware adaptation ladder for cross-session BCI drift. At the start of a new target session, the first $K$ trials are used to estimate neural feature geometry. The target geometry is compared to a library of past input states. The system first reuses the previous input layer as the default, retrieves an older candidate when geometry suggests a closer match, or performs lightweight input-layer calibration when stored states are unreliable. The shared GRU decoder and output head remain frozen throughout.}
 \label{fig:conceptual-overview}
 \end{figure*}
 

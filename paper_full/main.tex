@@ -80,10 +80,26 @@ We avoid mixing PER with derived recovery percentages in the main result tables:
 \subsection{Adaptation and Source Selection}
 We compare native-day decoding against three fixed non-native source layers: early (\texttt{t15.2023.08.13}), middle (\texttt{t15.2023.11.26}), and late (\texttt{t15.2025.04.13}). Using the middle source layer, we test a ladder of increasingly expensive input-side interventions: no correction, unsupervised mean/scale moment matching, supervised diagonal affine calibration, and supervised input-layer calibration. Simple scalar normalizations, including target z-scoring and source moment matching, test whether channel-wise mean and variance alignment is sufficient to explain the cross-session mismatch. Learned adapters use the first $K$ labeled trials and are evaluated on the remaining trials. The GRU backbone and output head remain frozen; only the input transform is learned using CTC loss.
 
-\textbf{Neural feature geometry.} In this work, neural geometry means the shape of the neural population activity in feature space. Each time bin from each trial is treated as one neural-feature vector, so a session becomes a cloud of points in channel space. The covariance matrix summarizes how neural channels vary together, while subspace statistics summarize the dominant directions of population activity. Intuitively, two sessions are geometrically close if their neural activity clouds have similar shape, even if the sessions occur on different days. For K-shot source selection, the first $K$ unlabeled target trials are used to estimate the target covariance. We then compare this covariance to each past source session using relative Frobenius covariance distance and reuse the input layer of the closest past session:
+\textbf{Neural feature geometry.} In this work, neural geometry means the shape of the neural population activity in feature space. Each time bin from each trial is treated as one neural-feature vector, so a session becomes a cloud of points in channel space. The covariance matrix summarizes how neural channels vary together, while subspace statistics summarize the dominant directions of population activity. Intuitively, two sessions are geometrically close if their neural activity clouds have similar shape, even if the sessions occur on different days. For K-shot source selection, the first $K$ unlabeled target trials are used to estimate the target covariance. We use relative Frobenius covariance distance:
+\[
+d_{\mathrm{cov}}(t,s)
+=
+\frac{
+\left\|
+\mathrm{Cov}\!\left(S_t^{(K)}\right)
+-
+\mathrm{Cov}\!\left(S_s\right)
+\right\|_F
+}{
+\left\|
+\mathrm{Cov}\!\left(S_s\right)
+\right\|_F + \epsilon
+}.
+\]
+Here $\epsilon$ is a small stabilizer. We then compare this distance to each past source session and reuse the input layer of the closest past session:
 \[
     s^*(t) = \arg\min_{s \in \mathcal{S}_{\mathrm{past}}(t)}
-    d_{\mathrm{cov}}(S_t^{(K)}, S_s).
+    d_{\mathrm{cov}}(t,s).
 \]
 We compare this geometry policy to previous-session reuse, $s_{\mathrm{prev}}(t)$, because recency is the strongest prior available in a longitudinal BCI. We also compare bounded input-state libraries: previous only, last 3 sessions, last 5 sessions, and all past sessions.
 
@@ -269,6 +285,8 @@ This operational view clarifies why geometry remains useful even though it does 
 Geometry should not be treated as a replacement for recency. At $K=20$, it identifies older non-previous candidates in 11 sessions, but those candidates beat previous in only 3 cases. The drift-fingerprint analysis suggests that subspace mismatch is more informative than covariance distance alone when deciding whether an older state is worth retrieving. Future gates should combine subspace features, distance margins, temporal gap, decoder confidence, and session-quality diagnostics.
 
 This framing complements stronger decoder-backbone approaches. Pretrained speech models or language-model decoding may improve absolute performance, while input-state selection addresses a different deployment question: how to keep a fixed decoder usable across sessions with minimal calibration. Future work should test this ladder with WER, language-model decoding, closed-loop evaluation, and additional datasets. Preliminary alignment probes also suggest caution: geometry-based feature transformations such as covariance alignment may introduce harms, so geometry is currently more reliable as a retrieval signal than as an automatic feature transformation.
+
+A further direction is to test whether the input-state library view extends beyond speech and motor decoding to cognitive or memory-related neural recordings. Recent human hippocampal and entorhinal single-neuron work shows that neural populations actively encode the temporal structure of experience~\cite{tacikowski2024human}. Such datasets could test whether geometry-guided state retrieval is specific to speech BCI drift, or whether it reflects a broader, domain-general principle of reusable neural state organization.
 
 \section{Limitations}
 This study is a decoder-facing audit, not a new decoding architecture. We report greedy phoneme error rate rather than full WER or language-model decoding. T12 and inner-speech analyses are geometry-only and should not be interpreted as decoder replications. A practical input-state library also requires memory management. Although our results suggest that a small recent library can approach all-past selection, a deployed system may need to prune, cluster, or compress stored input states over months or years rather than retaining every past session. The learned-adapter and K-shot source-selection experiments simulate a beginning-of-day window within the validation split and evaluate only on remaining trials. Larger windows can be informative, but we focus on $K \leq 20$ as the minimal-calibration regime.

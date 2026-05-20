@@ -221,6 +221,16 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \subsection{Reusable Input-State Libraries}
 The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. In T15, K-shot geometry selection chooses the previous session in most targets, but selects an older non-previous input layer in 22--30\% of cases. Depending on whether improvement is summarized by trial-mean PER or phoneme-weighted session PER, these older sources outperform the previous-session source in a small minority of non-previous selections. This suggests that some target sessions may resemble older input-layer states rather than only drifting monotonically away from the previous day.
 
+To inspect these non-previous selections directly at $K=20$, we compare the geometry-selected source to the immediately previous source for each target session. Geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.49\textwidth]{figures/t15_geometry_selected_lag_by_target.png}
+\includegraphics[width=0.49\textwidth]{figures/t15_geometry_previous_vs_selected_distance.png}
+\caption{Geometry-selected older sources are meaningful candidates but not reliable standalone decisions at $K=20$. Left: most target sessions select the immediately previous session, but several jump to older stored input states. Right: geometry-selected sources are closer in covariance distance by construction, but lower geometry distance does not always translate to lower PER. Green points indicate cases where the geometry-selected source outperforms previous; red points indicate cases where previous remains better.}
+\label{fig:geometry-nonprevious-story}
+\end{figure*}
+
 One possible explanation is that a day-specific input layer may represent a neural recording state rather than a purely chronological day. Changes in recording quality, electrode yield, thresholding, neural strategy, or user state could move a new session closer to an older feature geometry than to the immediately preceding session. This view is also consistent with evidence that local cortical network activity can be modulated by action-perception state~\cite{engelhard2019action}. In this view, source selection is closer to memory retrieval over past input states than to choosing the most recent date.
 
 We observe the same qualitative pattern in the T12 diagnostic-block geometry check. Using spike-power features, geometry selects an older non-previous session in 7/15 evaluable targets. Some selections jump substantially backward in time, for example 2022-08-13 selecting 2022-06-21, a 53-day lag, and 2022-08-25 selecting 2022-08-13 rather than the immediately preceding session.

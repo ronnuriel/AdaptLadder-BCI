@@ -212,6 +212,61 @@ def plot_state_map(frame: pd.DataFrame, pairwise: pd.DataFrame, metric: str, out
     plt.close(fig)
 
 
+def add_session_index_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    out = frame.copy()
+    session_dates = []
+    for session_col, date_col in [
+        ("target_session", "target_date"),
+        ("previous_session", "previous_date"),
+        ("geometry_source_session", "geometry_source_date"),
+    ]:
+        if session_col in out.columns and date_col in out.columns:
+            session_dates.append(out[[session_col, date_col]].rename(columns={session_col: "session", date_col: "date"}))
+    sessions = pd.concat(session_dates, ignore_index=True).dropna().drop_duplicates()
+    sessions["date"] = pd.to_datetime(sessions["date"])
+    sessions = sessions.sort_values(["date", "session"]).reset_index(drop=True)
+    sessions["session_index"] = np.arange(len(sessions))
+    index = sessions.set_index("session")["session_index"]
+    out["target_index"] = out["target_session"].map(index)
+    out["previous_index"] = out["previous_session"].map(index)
+    out["geometry_source_index"] = out["geometry_source_session"].map(index)
+    out["skipped_sessions_between_geometry_and_target"] = out["target_index"] - out["geometry_source_index"] - 1
+    out["skipped_sessions_between_previous_and_target"] = out["target_index"] - out["previous_index"] - 1
+    return out
+
+
+def write_older_wins(frame: pd.DataFrame, metric: str, output: Path) -> pd.DataFrame:
+    indexed = add_session_index_columns(frame)
+    wins = indexed[indexed["winner"].astype(str).str.lower().eq("geometry")].copy()
+    wins["absolute_gain_per_points"] = 100.0 * (wins["previous_PER"] - wins["geometry_PER"])
+    wins["relative_gain_percent"] = 100.0 * (wins["previous_PER"] - wins["geometry_PER"]) / wins["previous_PER"]
+    wins["previous_PER_percent"] = 100.0 * wins["previous_PER"]
+    wins["geometry_PER_percent"] = 100.0 * wins["geometry_PER"]
+    cols = [
+        "target_session",
+        "previous_session",
+        "geometry_source_session",
+        "previous_lag_days",
+        "geometry_lag_days",
+        "extra_lag_days_vs_previous",
+        "skipped_sessions_between_geometry_and_target",
+        f"previous_{metric}",
+        f"geometry_{metric}",
+        "geometry_distance_advantage",
+        "previous_PER_percent",
+        "geometry_PER_percent",
+        "absolute_gain_per_points",
+        "relative_gain_percent",
+        "previous_eval_trials",
+        "geometry_eval_trials",
+    ]
+    cols = [c for c in cols if c in wins.columns]
+    wins = wins[cols].sort_values(["geometry_lag_days", "target_session"], ascending=[False, True])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    wins.to_csv(output, index=False)
+    return wins
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Plot the T15 geometry-vs-previous source-selection story.")
     parser.add_argument("--detail", type=Path, default=Path("results/tables/t15_geometry_vs_previous_sources.csv"))
@@ -224,6 +279,11 @@ def main() -> None:
         type=Path,
         default=Path("results/tables/t15_geometry_non_previous_cases.csv"),
     )
+    parser.add_argument(
+        "--output-older-wins",
+        type=Path,
+        default=Path("results/tables/t15_geometry_older_wins_k20.csv"),
+    )
     args = parser.parse_args()
 
     detail = pd.read_csv(args.detail)
@@ -235,6 +295,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.output_nonprevious.parent.mkdir(parents=True, exist_ok=True)
     frame[~frame["same_as_previous"]].to_csv(args.output_nonprevious, index=False)
+    wins = write_older_wins(frame, args.metric, args.output_older_wins)
 
     lag_path = args.output_dir / "t15_geometry_selected_lag_by_target.png"
     scatter_path = args.output_dir / "t15_geometry_previous_vs_selected_distance.png"
@@ -244,12 +305,32 @@ def main() -> None:
     plot_state_map(frame, pairwise, args.metric, map_path)
 
     print(f"Wrote {args.output_nonprevious}")
+    print(f"Wrote {args.output_older_wins}")
     print(f"Wrote {lag_path}")
     print(f"Wrote {scatter_path}")
     print(f"Wrote {map_path}")
     summary = frame.groupby(["same_as_previous", "winner"]).size().reset_index(name="count")
     print("\nK =", args.calibration_trials)
     print(summary.to_string(index=False))
+    if not wins.empty:
+        printable = wins.copy()
+        for col in [
+            "previous_PER_percent",
+            "geometry_PER_percent",
+            "absolute_gain_per_points",
+            "relative_gain_percent",
+        ]:
+            if col in printable.columns:
+                printable[col] = printable[col].map(lambda v: f"{v:.2f}")
+        print("\nGeometry older-source wins:")
+        print(printable.to_string(index=False))
+        print("\nWin summary:")
+        print(f"n wins: {len(wins)}")
+        print(f"median geometry lag: {wins['geometry_lag_days'].median():.1f} days")
+        print(f"max geometry lag: {wins['geometry_lag_days'].max():.1f} days")
+        print(f"median previous lag: {wins['previous_lag_days'].median():.1f} days")
+        print(f"mean absolute gain: {wins['absolute_gain_per_points'].mean():.2f} PER points")
+        print(f"mean relative gain: {wins['relative_gain_percent'].mean():.1f}%")
 
 
 if __name__ == "__main__":

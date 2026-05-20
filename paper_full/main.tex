@@ -90,7 +90,28 @@ We compare this geometry policy to previous-session reuse, $s_{\mathrm{prev}}(t)
 \section{Experiments}
 We first audit decoder-facing adaptation on T15, then use T12 and inner-speech blocks as geometry-only supporting checks.
 
+\begin{table}[t]
+\centering
+\caption{Main findings at a glance. Lower PER is better.}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.32\linewidth}p{0.26\linewidth}p{0.31\linewidth}@{}}
+\toprule
+Question & Result & Interpretation \\
+\midrule
+Does the native input state matter? & Native-day: 9.06\% PER & Correct day-specific input layers work well. \\
+What if the input state is wrong? & Fixed non-native: 22.67--34.43\% PER & Cross-session mismatch strongly degrades decoding. \\
+Is mean/scale correction enough? & Moment match: 22.73\% PER & Simple distribution matching fails. \\
+Does small calibration solve it? & Input layer, $K=20$: 18.59\% PER & Calibration helps, but remains far from native-day. \\
+What is the best low-cost policy? & Previous source, $K=20$: 12.21\% PER & Recency is the strongest default. \\
+Does geometry help? & Geometry, $K=20$: 12.74\% PER; older wins 3/11 & Geometry retrieves candidates, but needs a gate. \\
+\bottomrule
+\end{tabular}
+\label{tab:main-findings}
+\end{table}
+
 \subsection{Cross-Day Stress Test and Adaptation Ladder}
+\textbf{Finding 1: the day-specific input layer is essential.}
 Native-day decoding reaches 9.06\% phoneme-weighted PER, confirming that the local evaluation reproduces the expected behavior of the official checkpoint. When all sessions are forced through non-native source input layers, PER rises to 22.67--34.43\%, harming 40/41 sessions for each source choice.
 
 \begin{table}[t]
@@ -126,6 +147,7 @@ Input layer, $K=20$ & 18.59\% & 2.46\% (11-26) & 52.23\% (03-30) \\
 The natural first hypothesis is that cross-session mismatch is mostly a mean/variance shift. The data do not support this: moment matching remains essentially tied with no correction. Supervised diagonal affine and input-layer calibration improve PER beyond moment matching, with input-layer calibration reaching 18.59\% at $K=20$. However, this remains far from 9.06\% native-day decoding, so small calibration is useful but does not replace a well-matched prior input state.
 
 \subsection{T15 Geometry and Beginning-of-Day Source Selection}
+\textbf{Finding 2: T15 drift is geometrically structured over time.}
 Before using geometry for retrieval, we first verify that T15 sessions have temporally structured input geometry. Figure~\ref{fig:t15-geometry-map} shows that pairwise covariance shift increases with temporal separation, while nearby sessions form a diagonal band of similar geometry. This supports recency as a strong prior, but the map is not purely chronological.
 
 \begin{figure*}[t]
@@ -156,6 +178,7 @@ Best simple override & 13.09\% & 12.90\% & 12.18\% \\
 \end{table}
 
 \subsection{Geometry Retrieves Older Candidates but Needs a Gate}
+\textbf{Finding 3: geometry retrieves older candidates, but does not reliably replace recency.}
 The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy: closer in geometry does not always mean lower PER.
 
 \begin{figure}[t]

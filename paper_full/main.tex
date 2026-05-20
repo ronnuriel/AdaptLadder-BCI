@@ -96,11 +96,12 @@ d_{\mathrm{cov}}(t,s)
 \right\|_F + \epsilon
 }.
 \]
-Here $\epsilon$ is a small stabilizer. We then compare this distance to each past source session and reuse the input layer of the closest past session:
+Here $\epsilon=10^{-8}$ is a small stabilizer to prevent division by zero. We then compare this distance to each past source session and reuse the input layer of the closest past session:
 \[
     s^*(t) = \arg\min_{s \in \mathcal{S}_{\mathrm{past}}(t)}
     d_{\mathrm{cov}}(t,s).
 \]
+For subspace diagnostics, we also compute PCA-based subspace distances between each target--source pair. We form low-dimensional bases from the top 20 principal components of the target and source neural-feature matrices, then compute the principal angles between these two subspaces. The reported mean principal angle is the average of these angles in degrees; smaller values indicate more similar dominant neural activity subspaces.
 We compare this geometry policy to previous-session reuse, $s_{\mathrm{prev}}(t)$, because recency is the strongest prior available in a longitudinal BCI. We also compare bounded input-state libraries: previous only, last 3 sessions, last 5 sessions, and all past sessions.
 
 \section{Experiments}
@@ -249,7 +250,7 @@ $K$ & Case & $n$ & $\Delta$ principal angle \\
 \subsection{Geometry-Only Supporting Checks}
 T12 diagnostic blocks provide a secondary geometry-only check. Across spike-power and threshold-crossing feature variants, covariance distance increases with temporal separation, and geometry sometimes selects older non-previous sessions. For spike-power features, geometry selects an older source in 7/15 targets, including a 53-day non-recent match.
 
-As a separate behavior-state check, we analyzed inner-speech behavior blocks without training a decoder or attempting inner-speech decoding. Covariance geometry retrieves matching behavior well above chance, with binned threshold crossings during the go epoch reaching 96.15\% nearest-behavior accuracy versus a 20\% chance level. These results support the broader input-state view, but remain geometry-only.
+As a separate behavior-state check, we analyzed inner-speech behavior blocks without training a decoder or attempting inner-speech decoding. Covariance geometry retrieves matching behavior well above chance, with binned threshold crossings during the go epoch reaching 96.15\% nearest-behavior accuracy across five behavior classes, compared with a 20\% chance level. These results support the broader input-state view, but remain geometry-only.
 
 \section{Discussion}
 The main lesson is that cross-session adaptation should not be treated as a single fixed correction. Native T15 input layers are highly effective, while fixed non-native input layers cause large decoder-facing degradation. Simple moment alignment does not emulate those layers, and learned input calibration improves PER only partially. The most useful low-cost intervention is therefore not a new adapter, but a better choice of an existing input layer.

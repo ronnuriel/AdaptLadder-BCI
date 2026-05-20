@@ -255,11 +255,31 @@ As a separate behavior-state check, we analyzed inner-speech behavior blocks wit
 \section{Discussion}
 The main lesson is that cross-session adaptation should not be treated as a single fixed correction. Native T15 input layers are highly effective, while fixed non-native input layers cause large decoder-facing degradation. Simple moment alignment does not emulate those layers, and learned input calibration improves PER only partially. The most useful low-cost intervention is therefore not a new adapter, but a better choice of existing input layer.
 
+Table~\ref{tab:operational-ladder} summarizes the deployment interpretation of the adaptation ladder.
+
+\begin{table*}[t]
+\centering
+\caption{Operational interpretation of the adaptation ladder. PER values are evidence from this audit rather than guaranteed deployment performance. Lower PER is better.}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}p{0.16\textwidth}p{0.15\textwidth}p{0.20\textwidth}p{0.15\textwidth}p{0.20\textwidth}@{}}
+\toprule
+Scenario & Naive action & Recommended ladder action & Evidence in this audit & Operational insight \\
+\midrule
+Recent previous state (0--3 days) & Reuse latest state & \textbf{Reuse previous} (zero-shot) & Previous source: 9.97\% PER & Recency wins when the last input state is truly recent; no labels or calibration are needed. \\
+Stale previous state ($>$14 days) & Reuse latest state anyway & \textbf{Check geometry and retrieve a stored candidate} & Previous degrades to 24.54\% PER; geometry $K=20$ reaches 12.74\% overall & The previous layer has a time horizon; geometry is useful when recency is no longer trustworthy. \\
+No reliable stored state & Full retraining or blind reuse & \textbf{Residual input calibration} ($K=20$ labeled trials) & Fixed middle: 22.67\% $\rightarrow$ 18.59\% PER & Calibration helps, but remains far from native-day; use it as an escalation step. \\
+Simple distribution shift & Mean/scale correction & \textbf{Do not rely on moment matching} & Channel-wise moment match: 22.73\% PER & Mean/variance alignment does not capture the decoder-relevant drift. \\
+Geometry-selected older candidate & Always override previous & \textbf{Use a confidence gate} & Older selected in 11 sessions; wins in 3; false-positive cost 3.23 pp & Geometry retrieves plausible candidates, but covariance distance alone is not reliable enough as a standalone policy. \\
+\bottomrule
+\end{tabular}
+\label{tab:operational-ladder}
+\end{table*}
+
 A small number of difficult sessions, especially 2025-03-30 and 2025-03-14, dominate worst-case PER. However, sensitivity checks excluding the worst one or two sessions preserve the same qualitative ordering: fixed non-native layers remain degraded, moment matching remains ineffective, input-layer calibration remains partial, and previous/geometry source policies remain the strongest low-cost choices. We therefore retain all sessions and treat these days as stress cases for future session-quality gating.
 
 The resulting adaptation ladder is sequential. First, reuse the previous input state when it is recent and geometrically plausible, since previous-session reuse is the strongest simple default. Second, if the beginning-of-day geometry suggests that an older stored state is closer to the target session, retrieve that older input state as a candidate rather than immediately calibrating. Third, if no stored state appears reliable and labels are available, perform lightweight residual calibration of the input layer only. This makes calibration an escalation step, not the default response to every new day.
-
-Operationally, the ladder has three deployment regimes. If the previous state is recent, reuse it without labels: previous-source PER is 9.97\% when the last input state is 0--3 days old. If the previous state is stale, geometry should be used as a retrieval signal: previous-source PER degrades to 24.54\% beyond two weeks, while K-shot geometry reaches 12.74\% overall at $K=20$. If no stored state appears reliable, residual input calibration is the fallback, improving the fixed-middle stress setting from 22.67\% to 18.59\% PER. Because geometry-selected older candidates win only 3/11 times at $K=20$ and false-positive retrievals cost 3.23 percentage points on average, any override should be gated by confidence features.
 
 Geometry should not be treated as a replacement for recency. At $K=20$, it identifies older non-previous candidates in 11 sessions, but those candidates beat previous in only 3 cases. The drift-fingerprint analysis suggests that subspace mismatch is more informative than covariance distance alone when deciding whether an older state is worth retrieving. Future gates should combine subspace features, distance margins, temporal gap, decoder confidence, and session-quality diagnostics.
 

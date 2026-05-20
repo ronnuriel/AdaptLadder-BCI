@@ -34,16 +34,16 @@ Brain-to-text BCI decoders must remain usable as neural signals change across re
 \end{abstract}
 
 \section{Introduction}
-High-performance speech BCIs commonly include session-specific adaptation machinery because intracortical neural features drift across days. Long-term stability has long been recognized as a central challenge for practical BCI deployment~\cite{vaadia2009grand}. In this work, ``drift'' means that the neural feature distribution recorded on a new day no longer matches the distribution seen by the decoder during earlier sessions. A practical BCI therefore needs a way to decide whether yesterday's input mapping is still usable, whether an older mapping is a better match, or whether a short calibration step is needed. This raises a practical question: before retraining a decoder or collecting a long supervised calibration set, how much adaptation is enough?
+High-performance speech BCIs commonly include session-specific adaptation machinery because intracortical neural features drift across days. Long-term stability has long been recognized as a central challenge for practical BCI deployment~\cite{vaadia2009grand}. In this work, ``drift'' means that the neural feature distribution recorded on a new day no longer matches the distribution seen by the decoder during earlier sessions. A practical BCI therefore needs a way to decide whether yesterday's input mapping is still usable, whether an older mapping is a better match, or whether a short calibration step is needed. This raises a practical question: before retraining a decoder or collecting a long supervised calibration set, how much adaptation is enough? Our main practical finding is that cross-session BCI drift is often better handled by choosing the right input state than by retraining the decoder.
 
 We examine this question in the official T15 brain-to-text GRU baseline from a rapidly calibrating speech neuroprosthesis study~\cite{card2024accurate}. The model contains learned day-specific input layers, followed by a GRU and output head. Intuitively, each input layer acts like a small session-specific adapter that maps that day's neural features into the representation expected by the shared GRU decoder. This structure creates a useful stress test: if a target session is decoded through the wrong input layer, performance measures the decoder-facing cost of cross-session input mismatch. We then ask whether simple feature corrections, small learned adapters, or geometry-guided source selection can recover the lost performance.
 
 The contribution is not a new speech decoder. Instead, we provide a decoder-facing adaptation audit:
 \begin{itemize}
-    \item Non-native input layers cause a large decoder-facing degradation in T15, increasing PER from 9.06\% native-day to 22.67--34.43\% under fixed non-native input layers.
-    \item Mean/variance correction is not enough: target z-scoring and moment matching remain near 22.7\% PER, while input-layer calibration from $K=20$ trials improves the fixed-middle stress setting to 18.59\% PER but remains incomplete.
-    \item Geometry-guided source selection recovers much of the fixed-source degradation: at $K=20$, K-shot geometry reaches 12.74\% PER, while previous-session recency is even stronger at 12.21\%.
-    \item T12 diagnostic blocks and inner-speech behavior blocks provide geometry-only support, including positive T12 days--distance correlations and 96.15\% nearest-behavior accuracy in inner-speech blocks.
+    \item Wrong input states break the decoder: native-day PER is 9.06\%, while fixed non-native input layers increase PER to 22.67--34.43\%.
+    \item Simple mean/scale correction is insufficient; input-layer calibration with $K=20$ improves PER to 18.59\% but remains far from native-day.
+    \item Previous-session reuse is the strongest simple policy at $K=20$ (12.21\% PER), while geometry selection is close (12.74\%) and reveals older-state candidates.
+    \item Geometry is a retrieval signal, not a standalone policy: at $K=20$ it selects older states in 11 sessions, but wins only 3 times, motivating a confidence gate.
 \end{itemize}
 
 We do not claim that neural drift geometry is new. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable for choosing among existing input-layer states and for framing recency as an explicit adaptation prior. Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view.
@@ -51,12 +51,7 @@ We do not claim that neural drift geometry is new. Rather, we show that in a dep
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/adaptation_ladder_overview.png}
-\caption{Conceptual overview of the adaptation ladder. A short beginning-of-day
-window is used to estimate the current input state and compare it to a library
-of past states. The triage controller chooses one of three actions: reuse the
-previous input layer, retrieve an older state by geometry, or apply lightweight
-residual calibration to the input layer only, while keeping the shared GRU
-decoder frozen.}
+\caption{Recency-aware input-state selection for cross-session BCI drift. For a new target session, the first $K$ trials are used to estimate neural feature geometry. Each session is represented as a cloud of neural feature vectors, summarized by covariance and subspace statistics. The target geometry is compared to a library of past input states. The system first reuses the previous input layer when it is recent and plausible; otherwise, geometry can retrieve an older candidate state. If no stored state is reliable, only the input layer is lightly calibrated while the shared GRU decoder remains frozen.}
 \label{fig:conceptual-overview}
 \end{figure*}
 
@@ -110,6 +105,8 @@ remain frozen, and only a small input transform is learned from the first $K$
 validation trials using CTC loss.
 
 \subsection{Drift Geometry and Source Selection}
+\textbf{Neural feature geometry.} We represent each session as a cloud of neural feature vectors in channel space. Each time bin from each trial is one point in this space. The shape of this cloud is summarized using covariance and low-dimensional subspace statistics. For K-shot source selection, the first $K$ unlabeled target trials are used to estimate the target covariance. We then compare this covariance to each past source session using relative Frobenius covariance distance and reuse the input layer of the closest past session.
+
 For each source-target pair, we compute temporal distance, mean and scale shifts, relative covariance shift, CORAL-style distance, and PCA subspace distances. We then select a source input layer by nearest covariance geometry. To approximate deployment, a K-shot variant estimates target geometry from only the first $K \in \{5,10,20\}$ unlabeled validation trials and evaluates on the remaining trials. We focus the main claims on $K \leq 20$ because this represents the minimal-calibration regime in the available validation split.
 
 Because temporal recency is an obvious baseline, we also evaluate the immediately previous input layer. Finally, we test a simple recency-aware override: use the previous input layer by default and switch to the geometry-selected older source only if its covariance distance is less than $\alpha$ times the distance to the previous source.
@@ -499,7 +496,10 @@ language-model decoding, and closed-loop or online adaptation. Similarly, the
 T12 and inner-speech results are intentionally geometry-only; future work should
 ask whether the same input-state and behavior-state structure improves actual
 decoding when suitable checkpoints and evaluation pipelines are available. A
-further direction is to test whether the input-state library view extends beyond
+preliminary alignment direction is also worth treating cautiously: geometry-based
+feature transformations, such as covariance alignment, may introduce harms, so
+geometry is currently more reliable as a retrieval signal than as an automatic
+feature transformation. Another direction is to test whether the input-state library view extends beyond
 speech and motor decoding to cognitive or memory-related neural recordings.
 Recent human hippocampal and entorhinal single-neuron work shows that neural
 populations encode the temporal structure of experience~\cite{tacikowski2024human}.

@@ -38,15 +38,6 @@ Do we really need to recalibrate or retrain a brain-to-text decoder every day? F
 
 We test this input-state view in the official T15 brain-to-text GRU baseline from a rapidly calibrating speech neuroprosthesis study~\cite{card2024accurate}. The model contains learned day-specific input layers, followed by a GRU and output head. Intuitively, each input layer acts like a small session-specific adapter that maps that day's neural features into the representation expected by the shared GRU decoder. This structure creates a useful stress test: if a target session is decoded through the wrong input layer, performance measures the decoder-facing cost of cross-session input mismatch. We then compare simple feature corrections, small learned adapters, and geometry-guided source selection as rungs of a lightweight adaptation ladder.
 
-Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: keep the shared decoder frozen, estimate the new input state from a short beginning-of-day window, and choose the lightest input-side action supported by the evidence.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.90\textwidth]{figures/adaptation_ladder_overview.png}
-\caption{Recency-aware adaptation ladder. A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
-\label{fig:conceptual-overview}
-\end{figure*}
-
 The contribution is not a new speech decoder. Instead, we provide a decoder-facing adaptation audit:
 \begin{itemize}
     \item Wrong input states break the decoder: native-day PER is 9.06\%, while fixed non-native input layers increase PER to 22.67--34.43\%.
@@ -56,6 +47,16 @@ The contribution is not a new speech decoder. Instead, we provide a decoder-faci
 \end{itemize}
 
 We do not claim that neural drift geometry is new. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable for choosing among existing input-layer states and for framing recency as an explicit adaptation prior.
+
+Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: keep the shared decoder frozen, estimate the new input state from a short beginning-of-day window, and choose the lightest input-side action supported by the evidence.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/adaptation_ladder_overview.png}
+\caption{Recency-aware adaptation ladder. A short beginning-of-day window estimates target-session geometry, compares it to stored input states, and chooses the lightest input-side action: reuse previous, retrieve an older candidate, or calibrate the input layer only. The GRU backbone and output head remain frozen.}
+\label{fig:conceptual-overview}
+\end{figure*}
+\clearpage
 
 \section{Related Work}
 Brain-to-text BCIs have progressed from handwriting-based decoding to high-performance speech neuroprostheses, but long-term use still requires session-specific adaptation or recalibration as neural recordings change over time~\cite{willett2021handwriting,willett2023speech,card2024accurate}. Cross-session stability has also been studied through neural geometry and manifold alignment: prior work shows that low-dimensional neural structure can be aligned across recording instabilities, and dynamics-aware methods can stabilize BCIs over longer timescales~\cite{degenhart2020stabilization,karpowicz2025nomad}. Our setting is narrower: rather than learning a new invariant decoder, we ask whether short-window geometry can choose among existing day-specific input states. Continual recalibration and session-invariant learning provide complementary ways to update or regularize decoders~\cite{fan2023corp,zhang2026align}; here, we audit low-cost actions available before retraining: previous-session reuse, geometry-guided source retrieval, and lightweight input-layer calibration.

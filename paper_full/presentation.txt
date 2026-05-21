@@ -1,0 +1,65 @@
+כן. הכנתי לך גרסה באנגלית, נקייה להדבקה ל־ElevenLabs, באורך של בערך 4:30–5:00 דקות בדיבור רגוע. המספרים והמסגור תואמים למצגת הקיימת שלך  ￼ ול־paper_full: ה־paper מציג שזה לא decoder חדש אלא audit של input adaptation, עם native-day סביב 9.06% PER, fixed non-native סביב 22.67–34.43%, calibration חלקי, previous סביב 12.21%, ו־geometry סביב 12.74%.  ￼
+
+להדבקה:
+
+⸻
+
+Do we really need to recalibrate or retrain a brain-to-text decoder every day?
+
+In B C I, this is not a theoretical question. Daily calibration costs user time, requires labeled data, and can make a helpful system harder to use.
+
+Our main finding is: not simply yes, and not simply no.
+
+The decoder can stay frozen. But the input state for that day has to be chosen correctly.
+
+Instead of asking, “How do we retrain the model today?”, we ask: “Which historical input state is most compatible with the brain signal today?”
+
+We do not propose a new decoder. We study how to maintain the official T fifteen brain-to-text G R U. The G R U and output head stay frozen. What changes is the input layer: the day-specific adapter that maps neural features into the space the G R U knows how to read.
+
+In simple terms: the G R U already knows how to decode. But the signal has to enter through the right adapter.
+
+The first result shows why this matters.
+
+With the native input layer for each day, decoding reaches about nine percent P E R. P E R means phoneme error rate, and lower is better.
+
+But with the wrong input layer, error jumps to roughly twenty two to thirty four percent. So the decoder itself is not necessarily the problem. The interface into the decoder is wrong.
+
+We then tested whether drift is just a change in mean or scale. Moment matching aligns the mean and variance of each neural channel. But it did not solve the problem. The result stayed around twenty two point seven percent P E R.
+
+A small supervised calibration of the input layer, using twenty labeled trials, helps. It improves the fixed-source setting to about eighteen point six percent P E R. But this is still far from native-day performance.
+
+The stronger low-cost move is to reuse or retrieve a compatible input state from the past. With K equals twenty, the previous input state gives about twelve point two percent P E R. Geometry-based retrieval is close, about twelve point seven percent.
+
+What do we mean by geometry?
+
+Each session is trials, by time bins, by neural features. If we flatten trials and time, each time bin becomes one point in a high-dimensional neural feature space. A session becomes a cloud of points.
+
+The covariance matrix describes the shape of that cloud: how neural channels move together. If today’s cloud resembles a past day’s cloud, that past input layer may still be compatible.
+
+This gives us the adaptation ladder.
+
+At the beginning of a new day, we take a short window, for example five, ten, or twenty trials. For geometry retrieval, this window does not need labels. We estimate the geometry of the new day and compare it to stored input states.
+
+Step one: reuse previous. If the previous state is recent and plausible, use it. No labels, no training.
+
+Step two: retrieve by geometry. If previous is stale, search for an older input state with similar neural geometry.
+
+Step three: calibrate input only. If no stored state is reliable, use a small labeled calibration set to adapt only the input layer. The G R U remains frozen.
+
+The drift is structured, not random. Nearby days are usually close in geometry, and covariance shift grows with temporal distance. The Spearman correlation is about zero point eight five. This explains why previous is such a strong default.
+
+But sometimes an older state looks closer than yesterday’s state. That is where geometry becomes useful.
+
+The caution is that geometry is not a complete policy yet.
+
+At K equals twenty, geometry selected previous in twenty six sessions, and an older source in eleven sessions. Among those eleven older choices, the older source beat previous only three times. In seven cases, previous was still better, and one case was tied.
+
+So the conclusion is not: always trust geometry.
+
+The conclusion is: geometry proposes candidates, but a confidence gate must decide when to trust them.
+
+The operational answer is simple: reuse previous when it is recent, retrieve by geometry when previous is stale, and calibrate the input layer only when no stored state is reliable.
+
+So no, we do not necessarily need to recalibrate or retrain the brain-to-text decoder every day.
+
+The decoder can stay frozen. What needs to adapt is the input state.

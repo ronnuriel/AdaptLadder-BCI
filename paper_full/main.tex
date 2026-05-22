@@ -15,7 +15,7 @@
 \usepackage[switch]{lineno}
 
 % Comment out for camera-ready if requested by the venue.
-\linenumbers
+% \linenumbers
 \urlstyle{same}
 
 \hypersetup{
@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions, but daily recalibration is costly for users and requires labeled data. We audit how much input-side adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions with its backbone and output head frozen. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), whereas forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised mean/variance corrections fail to recover this loss, and a supervised input-layer adapter trained from 20 labeled calibration trials improves the fixed-middle stress setting only from 22.67\% to 18.59\% PER. The strongest low-cost result is source-layer management: at $K=20$, immediately previous-session reuse reaches 12.21\% PER, while short-window covariance-based retrieval of a past input layer reaches 12.74\% PER and exposes older-state candidates. However, geometry is not yet a standalone deployment policy: when it selects an older non-previous source at $K=20$, that source beats previous in only 3 of 11 cases. These results support a recency-aware adaptation ladder: reuse the previous input state when it is recent, use drift geometry to nominate older candidates when recency becomes unreliable, and reserve labeled calibration for cases where no stored input state is trustworthy.
+Brain-to-text BCI decoders must remain usable as neural signals change across recording sessions, but daily recalibration is costly for users and requires labeled data. We audit how much input-side adaptation is needed when the official T15 brain-to-text GRU is evaluated across sessions with its backbone and output head frozen~\cite{card2024accurate}. Native day-specific input layers reproduce low validation phoneme error (9.06\% PER), whereas forcing sessions through non-native input layers increases PER to 22.67--34.43\%. Unsupervised mean/variance corrections fail to recover this loss, and a supervised input-layer adapter trained from 20 labeled calibration trials improves the fixed-middle stress setting only from 22.67\% to 18.59\% PER. The strongest low-cost result is input-state management: at $K=20$, immediately previous-session reuse reaches 12.21\% PER, while short-window covariance-based retrieval of a past input layer reaches 12.74\% PER and exposes older-state candidates. However, geometry is not yet a standalone deployment policy: when it selects an older non-previous source at $K=20$, that source beats previous in only 3 of 11 cases. These results support a recency-aware adaptation ladder: reuse the previous input state when it is recent, use drift geometry to nominate older candidates when recency becomes unreliable, and reserve labeled calibration for cases where no stored input state is trustworthy.
 \end{abstract}
 
 \section{Introduction}
@@ -48,7 +48,7 @@ The contribution is not a new speech decoder. Instead, we provide a decoder-faci
 
 We do not claim that neural drift geometry is new, or that covariance distance alone solves cross-session adaptation. Rather, we show that in a deployed-style brain-to-text decoder with learned day-specific input layers, short-window geometry is actionable as a candidate-retrieval signal and as a way to make recency an explicit adaptation prior.
 
-Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: keep the shared decoder frozen, estimate the new input state from a short beginning-of-day window, and choose the lightest input-side action supported by the evidence.
+Figure~\ref{fig:conceptual-overview} summarizes this adaptation-ladder view: keep the shared decoder frozen, estimate target-session geometry from a short beginning-of-day window, and choose the lightest input-side action supported by the evidence.
 
 \begin{figure*}[t]
 \centering
@@ -96,7 +96,7 @@ d_{\mathrm{cov}}(t,s)
 \right\|_F + \epsilon
 }.
 \]
-Here $\epsilon=10^{-8}$ is a small stabilizer to prevent division by zero. This source-normalized distance is used as a simple scale-aware diagnostic rather than as a claim of optimal geometry matching. We then compare this distance to each past source session and reuse the input layer of the closest past session:
+Here $\epsilon=10^{-8}$ is a small stabilizer to prevent division by zero. This source-normalized distance is used as a simple scale-aware diagnostic rather than as a claim of optimal geometry matching. We compare this distance to each past source session and select the input layer of the closest past session:
 \[
     s^*(t) = \arg\min_{s \in \mathcal{S}_{\mathrm{past}}(t)}
     d_{\mathrm{cov}}(t,s).
@@ -157,10 +157,8 @@ Input layer, $K=20$ & 18.59\% & 2.46\% (11-26) & 52.23\% (03-30) \\
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.46\textwidth]{figures/t15_source_sweep_weighted_per.png}
-\hfill
-\includegraphics[width=0.46\textwidth]{figures/t15_input_layer_calibration_recovery_source_middle_K20_epochs20.png}
-\caption{Left: fixed non-native source layers strongly degrade T15 phoneme decoding relative to native-day decoding. Right: small learned calibration improves over the fixed-middle source but remains far from native-day decoding.}
+\includegraphics[width=0.96\textwidth]{figures/t15_decoder_audit_overview.png}
+\caption{\textbf{Decoder-facing adaptation audit.} Left: using a wrong non-native input layer or simple moment matching strongly degrades T15 phoneme decoding relative to native-day decoding, while supervised input-layer calibration only partially recovers performance. Right: beginning-of-day input-state selection shows that previous-session reuse is the strongest simple default, with geometry retrieval close but not yet a standalone override policy.}
 \label{fig:ladder}
 \end{figure*}
 
@@ -220,11 +218,12 @@ Table~\ref{tab:recency-horizon} makes the recency horizon explicit. Previous-sou
 \textbf{Finding 3: geometry retrieves older candidates, but does not reliably replace recency.}
 The previous-session input layer is the strongest simple baseline, but it is not always the geometrically nearest source. At $K=20$, geometry selects the previous source in 26 sessions and an older non-previous source in 11 sessions. Among those 11 older selections, the older source achieves lower PER in 3 cases, the previous source remains better in 7 cases, and 1 case is tied. When geometry incorrectly selects an older source, the mean penalty relative to previous-session reuse is 3.23 percentage points (median 3.49, max 4.55). Thus geometry identifies plausible older-state candidates, but covariance distance alone is not sufficient as a deployment policy: closer in geometry does not always mean lower PER.
 
-\begin{center}
-\includegraphics[width=0.78\linewidth]{figures/t15_geometry_previous_vs_selected_distance.png}
-\captionof{figure}{Geometry retrieves closer candidates but is not a standalone policy. Points below the diagonal have a geometry-selected source that is closer than the previous source in covariance distance. Green points indicate cases where geometry achieves lower PER; red points indicate cases where previous remains better.}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/t15_geometry_previous_vs_selected_distance.png}
+\caption{Geometry retrieves closer candidates but is not a standalone policy. Points below the diagonal have a geometry-selected source that is closer than the previous source in covariance distance. Green points indicate cases where geometry achieves lower PER; red points indicate cases where previous remains better.}
 \label{fig:geometry-nonprevious-story}
-\end{center}
+\end{figure}
 
 This motivates retaining a compact memory of input states rather than only the latest layer. We restrict K-shot geometry selection to previous only, the last 3 sessions, the last 5 sessions, or all past sessions. The immediately previous session remains the best aggregate policy, but a small recent library nearly matches all-past selection.
 
@@ -315,6 +314,7 @@ For T15 brain-to-text decoding, fixed non-native input layers break the decoder,
 
 \section*{Ethical Statement}
 This work uses publicly released intracortical BCI datasets and reports only aggregate analyses. It does not attempt to infer private inner speech or deploy a decoder. Future extensions to inner-speech or cross-behavior state selection should include explicit intent-gating and privacy safeguards.
+
 
 \clearpage
 \bibliographystyle{named}

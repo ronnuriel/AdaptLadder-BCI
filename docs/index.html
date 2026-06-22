@@ -8,7 +8,7 @@
   <meta property="og:title" content="AdaptLadder-BCI | DriftGate" />
   <meta property="og:description" content="Daily BCI calibration should not be automatic. Reuse, retrieve, calibrate." />
   <meta property="og:image" content="assets/poster_preview.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260622b" />
 </head>
 <body>
   <header class="hero" id="top">
@@ -33,10 +33,10 @@
         <p class="authors">Ron Nuriel<sup>1</sup>, Itzhak Fried<sup>1</sup>, Doron Friedman<sup>1</sup>, Rafael Malach<sup>1</sup>, Eilon Vaadia<sup>2</sup>, Sarel Cohen<sup>1</sup></p>
         <p class="affiliations"><sup>1</sup> Reichman University · <sup>2</sup> The Hebrew University of Jerusalem</p>
         <div class="hero-actions">
-          <a class="button primary" href="https://github.com/ronnuriel/AdaptLadder-BCI">GitHub repository</a>
+          <a class="button primary" href="#playground">Try the DriftGate simulator</a>
+          <a class="button" href="https://github.com/ronnuriel/AdaptLadder-BCI">GitHub repository</a>
           <a class="button" href="assets/poster_printready.pdf">Poster PDF</a>
           <a class="button" href="assets/paper.pdf">Paper PDF</a>
-          <a class="button" href="#playground">Try the simulator</a>
         </div>
       </div>
       <div class="hero-card">
@@ -83,15 +83,15 @@
         <div>
           <div class="section-kicker">Interactive demo</div>
           <h2>DriftGate audit playground</h2>
-          <p>Move the sliders to see how a conservative DriftGate policy changes from <b>Green</b> reuse, to <b>Amber</b> retrieval, to <b>Red</b> calibration escalation.</p>
+          <p>Move the sliders and watch the policy switch between <b>Green</b> reuse, <b>Amber</b> retrieval, and <b>Red</b> calibration escalation. The numbers are anchors from the retrospective paper results, not a clinical prediction engine.</p>
         </div>
-        <span class="pill">Interactive controls</span>
+        <span class="pill">Live controls</span>
       </div>
 
-      <div class="triage-grid">
-        <div class="control-panel">
+      <div class="triage-shell">
+        <aside class="control-panel">
           <label class="slider-block">
-            <div class="slider-label"><span>Temporal gap</span><strong id="gapValue">2 days</strong></div>
+            <div class="slider-label"><span>Days since previous input state</span><strong id="gapValue">2 days</strong></div>
             <input id="gapSlider" type="range" min="1" max="45" value="2" />
             <div class="scale"><span>recent</span><span>stale &gt;14d</span></div>
           </label>
@@ -99,19 +99,18 @@
           <label class="slider-block">
             <div class="slider-label"><span>Neural covariance distance</span><strong id="driftValue">d<sub>cov</sub> = 0.350</strong></div>
             <input id="driftSlider" type="range" min="0.150" max="1.000" step="0.005" value="0.350" />
-            <div class="scale"><span>similar cloud</span><span>anomalous</span></div>
+            <div class="scale"><span>similar geometry</span><span>anomalous</span></div>
           </label>
 
           <div class="rules-card">
-            <h3>Threshold rules used in this demo</h3>
-            <p><b class="green-dot"></b> Green: 0–3 days and no geometry anomaly → reuse previous.</p>
-            <p><b class="amber-dot"></b> Amber: 4–14 days or covariance anomaly → retrieve candidate.</p>
-            <p><b class="red-dot"></b> Red: &gt;14 days or extreme anomaly → calibrate input only.</p>
-            <small>This is an educational visualization anchored to paper results, not a prospective clinical gate.</small>
+            <h3>Demo threshold rules</h3>
+            <p><b class="green-dot"></b><strong>Green:</strong> 0–3 days and no geometry anomaly → reuse previous.</p>
+            <p><b class="amber-dot"></b><strong>Amber:</strong> 4–14 days or covariance anomaly → retrieve candidate.</p>
+            <p><b class="red-dot"></b><strong>Red:</strong> &gt;14 days or extreme anomaly → calibrate input only.</p>
           </div>
-        </div>
+        </aside>
 
-        <div class="outcome-panel" id="outcomePanel">
+        <section class="outcome-panel" id="outcomePanel">
           <div class="regime-row">
             <span class="regime-badge" id="regimeBadge">GREEN REGIME ACTIVE</span>
             <strong id="conditionText">Recent previous state</strong>
@@ -119,27 +118,25 @@
           <h3 id="actionText">Reuse previous input state</h3>
           <p id="interpretationText">Recent previous states were often near-native in the retrospective T15 analysis.</p>
 
-          <div class="decision-flow" aria-label="DriftGate decision flow">
-            <div class="flow-step active" data-step="green">1. Reuse previous</div>
-            <div class="flow-arrow">→</div>
-            <div class="flow-step" data-step="amber">2. Retrieve by geometry</div>
-            <div class="flow-arrow">→</div>
-            <div class="flow-step" data-step="red">3. Calibrate input only</div>
+          <div class="ladder-steps" aria-label="DriftGate decision flow">
+            <div class="flow-step active" data-step="green"><b>1</b><span>Reuse previous</span><small>zero labels</small></div>
+            <div class="flow-step" data-step="amber"><b>2</b><span>Retrieve by geometry</span><small>unlabeled K-shot window</small></div>
+            <div class="flow-step" data-step="red"><b>3</b><span>Calibrate input only</span><small>K=20 labeled trials</small></div>
           </div>
 
           <div class="per-boxes" id="perBoxes">
             <article>
-              <span>Projected PER anchor</span>
+              <span>PER anchor</span>
               <strong id="perPrimary">9.97%</strong>
               <small id="perNote">0–3 day previous-state reuse anchor.</small>
             </article>
             <article>
-              <span>Cost</span>
+              <span>User burden</span>
               <strong id="costText">0 labels</strong>
-              <small>No gradient update.</small>
+              <small id="costNote">No gradient update.</small>
             </article>
           </div>
-        </div>
+        </section>
       </div>
     </section>
 
@@ -211,12 +208,14 @@
     <section class="section video" id="video">
       <div class="section-kicker">Video</div>
       <h2>Short project explainer</h2>
-      <p>Use this section for the more human, non-bot teaser video. Keep the old script available below for presenters who want to record their own narration.</p>
-      <video controls preload="metadata" poster="assets/video_poster.png">
+      <p>The player now defaults to a silent/no-bot teaser. Upload <code>assets/adaptladder_silent_teaser.mp4</code> to replace the old voice-over file completely.</p>
+      <video id="projectVideo" controls muted playsinline preload="metadata" poster="assets/video_poster.png">
+        <source src="assets/adaptladder_silent_teaser.mp4" type="video/mp4" />
         <source src="assets/adaptladder_explainer.mp4" type="video/mp4" />
         <track kind="captions" src="assets/adaptladder_explainer.vtt" srclang="en" label="English" default />
         Your browser does not support HTML5 video.
       </video>
+      <p class="caption"><b>No-bot mode:</b> the current fallback video is muted by default. For a true no-voice replacement, copy the silent MP4 into <code>docs/assets/adaptladder_silent_teaser.mp4</code>.</p>
       <details>
         <summary>Speaker script summary</summary>
         <div class="script-copy">
@@ -243,6 +242,6 @@
   <footer>
     <p>AdaptLadder-BCI · DriftGate · Reuse → Retrieve → Calibrate</p>
   </footer>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260622b"></script>
 </body>
 </html>

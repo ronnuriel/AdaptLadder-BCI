@@ -7,7 +7,7 @@
   <meta name="description" content="DriftGate: recency-aware input-state management for neural drift in brain-to-text BCI." />
   <meta property="og:title" content="AdaptLadder-BCI | DriftGate" />
   <meta property="og:description" content="Daily BCI calibration should not be automatic. Reuse, retrieve, calibrate." />
-  <meta property="og:image" content="assets/adaptladder_video_poster.png" />
+  <meta property="og:image" content="assets/poster_preview.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,11 +17,13 @@
       <div class="nav-links">
         <a href="#problem">Problem</a>
         <a href="#ladder">Ladder</a>
+        <a href="#playground">Simulator</a>
         <a href="#results">Results</a>
-        <a href="#talk">Talk</a>
+        <a href="#video">Video</a>
         <a href="#resources">Resources</a>
       </div>
     </nav>
+
     <div class="hero-grid">
       <div class="hero-copy">
         <div class="eyebrow">BRAIN-TO-TEXT BCI · NEURAL DRIFT · MINIMAL CALIBRATION</div>
@@ -34,6 +36,7 @@
           <a class="button primary" href="https://github.com/ronnuriel/AdaptLadder-BCI">GitHub repository</a>
           <a class="button" href="assets/poster_printready.pdf">Poster PDF</a>
           <a class="button" href="assets/paper.pdf">Paper PDF</a>
+          <a class="button" href="#playground">Try the simulator</a>
         </div>
       </div>
       <div class="hero-card">
@@ -46,7 +49,7 @@
     <section class="section tldr" id="problem">
       <div class="section-kicker">TL;DR</div>
       <h2>Daily BCI calibration should not be automatic.</h2>
-      <p>The decoder can stay frozen, but the input state must be chosen carefully. Before asking the user for new labeled calibration data, a system can first reuse a recent compatible state or retrieve a candidate from history using unlabeled neural geometry.</p>
+      <p>The decoder can stay frozen, but the input state must be chosen carefully. Before asking the user for new labeled calibration data, DriftGate first tries a recent compatible state, then uses unlabeled neural geometry to retrieve older candidates, and only escalates to input-layer calibration when stored states appear unreliable.</p>
     </section>
 
     <section class="metrics" aria-label="headline results">
@@ -56,7 +59,7 @@
       <article class="metric orange"><strong>7.5 min</strong><span>20 prompted sentences</span><p>Rapid calibration still has real user-time cost.</p></article>
     </section>
 
-    <section class="section split">
+    <section class="section split narrative">
       <div>
         <div class="section-kicker">Reframing the daily problem</div>
         <h2>Not “train every day”; first ask which historical input state fits today.</h2>
@@ -75,13 +78,78 @@
       <p class="caption">A short beginning-of-day neural window estimates target geometry. DriftGate chooses the cheapest reliable action: reuse previous, retrieve an older compatible candidate, or calibrate input only, while keeping the GRU backbone and phoneme head frozen.</p>
     </section>
 
+    <section class="section playground" id="playground">
+      <div class="section-head-row">
+        <div>
+          <div class="section-kicker">Interactive demo</div>
+          <h2>DriftGate audit playground</h2>
+          <p>Move the sliders to see how a conservative DriftGate policy changes from <b>Green</b> reuse, to <b>Amber</b> retrieval, to <b>Red</b> calibration escalation.</p>
+        </div>
+        <span class="pill">Interactive controls</span>
+      </div>
+
+      <div class="triage-grid">
+        <div class="control-panel">
+          <label class="slider-block">
+            <div class="slider-label"><span>Temporal gap</span><strong id="gapValue">2 days</strong></div>
+            <input id="gapSlider" type="range" min="1" max="45" value="2" />
+            <div class="scale"><span>recent</span><span>stale &gt;14d</span></div>
+          </label>
+
+          <label class="slider-block">
+            <div class="slider-label"><span>Neural covariance distance</span><strong id="driftValue">d<sub>cov</sub> = 0.350</strong></div>
+            <input id="driftSlider" type="range" min="0.150" max="1.000" step="0.005" value="0.350" />
+            <div class="scale"><span>similar cloud</span><span>anomalous</span></div>
+          </label>
+
+          <div class="rules-card">
+            <h3>Threshold rules used in this demo</h3>
+            <p><b class="green-dot"></b> Green: 0–3 days and no geometry anomaly → reuse previous.</p>
+            <p><b class="amber-dot"></b> Amber: 4–14 days or covariance anomaly → retrieve candidate.</p>
+            <p><b class="red-dot"></b> Red: &gt;14 days or extreme anomaly → calibrate input only.</p>
+            <small>This is an educational visualization anchored to paper results, not a prospective clinical gate.</small>
+          </div>
+        </div>
+
+        <div class="outcome-panel" id="outcomePanel">
+          <div class="regime-row">
+            <span class="regime-badge" id="regimeBadge">GREEN REGIME ACTIVE</span>
+            <strong id="conditionText">Recent previous state</strong>
+          </div>
+          <h3 id="actionText">Reuse previous input state</h3>
+          <p id="interpretationText">Recent previous states were often near-native in the retrospective T15 analysis.</p>
+
+          <div class="decision-flow" aria-label="DriftGate decision flow">
+            <div class="flow-step active" data-step="green">1. Reuse previous</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" data-step="amber">2. Retrieve by geometry</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" data-step="red">3. Calibrate input only</div>
+          </div>
+
+          <div class="per-boxes" id="perBoxes">
+            <article>
+              <span>Projected PER anchor</span>
+              <strong id="perPrimary">9.97%</strong>
+              <small id="perNote">0–3 day previous-state reuse anchor.</small>
+            </article>
+            <article>
+              <span>Cost</span>
+              <strong id="costText">0 labels</strong>
+              <small>No gradient update.</small>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="results">
       <div class="section-kicker">Results</div>
       <h2>The wrong input state breaks the frozen decoder.</h2>
       <div class="result-grid">
         <article class="result-card">
           <h3>Native vs wrong input state</h3>
-          <p>Native-day decoding reaches <b>9.06% PER</b>. Fixed non-native input states raise PER to <b>22.67-34.43%</b>, showing that the interface into the frozen decoder matters.</p>
+          <p>Native-day decoding reaches <b>9.06% PER</b>. Fixed non-native input states raise PER to <b>22.67–34.43%</b>, showing that the interface into the frozen decoder matters.</p>
           <div class="bars" aria-label="bar chart of PER values">
             <div><span>Native-day</span><i style="--w:27%">9.06</i></div>
             <div><span>Fixed middle</span><i style="--w:68%">22.67</i></div>
@@ -92,17 +160,22 @@
         </article>
         <article class="result-card">
           <h3>Yesterday is a strong zero-label default</h3>
-          <p>In the beginning-of-day setting, previous-state reuse reaches <b>13.09%</b>, <b>12.84%</b>, and <b>12.21%</b> at K=5, 10, and 20. Geometry retrieval remains close at <b>12.74%</b> for K=20.</p>
+          <p>Previous-state reuse reaches <b>13.09%</b>, <b>12.84%</b>, and <b>12.21%</b> PER at K=5, 10, and 20. Geometry retrieval remains close at <b>12.74%</b> for K=20.</p>
           <img src="assets/beginning_day_selection.png" alt="Beginning-of-day source selection chart" />
         </article>
       </div>
     </section>
 
-    <section class="section figure">
-      <div class="section-kicker">Geometry</div>
-      <h2>Structured drift predicts decoder error.</h2>
-      <p>Each session can be viewed as a cloud of neural-feature vectors. Covariance summarizes the population-activity cloud. The drift geometry is structured: source-target time gap and covariance distance correlate with heldout PER.</p>
-      <img src="assets/structured_drift_predicts_per.png" alt="Structured drift predicts decoder error in T15 and T12" />
+    <section class="section figure gallery">
+      <div class="section-kicker">Interactive figure viewer</div>
+      <h2>Explore the paper figures.</h2>
+      <div class="tabs" role="tablist" aria-label="Figure selector">
+        <button class="tab active" data-img="assets/figure1_adaptation_ladder.png" data-caption="The adaptation ladder: reuse previous, retrieve older candidates, calibrate input only if needed.">Adaptation ladder</button>
+        <button class="tab" data-img="assets/structured_drift_predicts_per.png" data-caption="Structured drift predicts decoder error: time gap and covariance distance correlate with heldout PER.">Structured drift</button>
+        <button class="tab" data-img="assets/beginning_day_selection.png" data-caption="Beginning-of-day source selection: previous-state reuse and geometry retrieval are close, both far better than fixed middle.">Beginning-of-day</button>
+      </div>
+      <img id="figureViewer" src="assets/figure1_adaptation_ladder.png" alt="Selected AdaptLadder figure" />
+      <p class="caption" id="figureCaption">The adaptation ladder: reuse previous, retrieve older candidates, calibrate input only if needed.</p>
     </section>
 
     <section class="section split guardrails">
@@ -112,7 +185,7 @@
         <p>Geometry can nominate plausible older states, but covariance distance alone is not reliable enough to silently override recency. It should warn, triage, and retrieve candidates; a confidence gate should decide whether an older state is trustworthy.</p>
       </div>
       <div class="mini-metrics">
-        <article><strong>9.97%</strong><span>0-3 day previous</span></article>
+        <article><strong>9.97%</strong><span>0–3 day previous</span></article>
         <article><strong>24.54%</strong><span>&gt;14 day previous</span></article>
         <article><strong>ρ = 0.785</strong><span>T15 geometry vs PER</span></article>
         <article><strong>+0.25pp</strong><span>nearest vs previous</span></article>
@@ -135,30 +208,21 @@
       </div>
     </section>
 
-    <section class="section talk" id="talk">
-      <div class="section-kicker">Presentation</div>
-      <h2>Five-minute narrated explainer</h2>
-      <p class="lead">A web-ready narrated video for the project site. The deck keeps the official T15 GRU framing: the decoder stays frozen, while DriftGate manages the input state through reuse, geometry retrieval, and input-only calibration when evidence demands it.</p>
-      <div class="video-frame">
-        <video controls preload="metadata" poster="assets/adaptladder_video_poster.png">
-          <source src="assets/adaptladder_explainer.mp4" type="video/mp4" />
-          <track src="assets/adaptladder_explainer.vtt" kind="captions" srclang="en" label="English captions" default />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-      <div class="download-row">
-        <a href="assets/adaptladder_explainer.mp4">Download video</a>
-        <a href="assets/adaptladder_explainer_audio.mp3">Audio only</a>
-        <a href="assets/adaptladder_explainer_script.md">Narration script</a>
-        <a href="assets/adaptladder_talk_deck_cleaned.pptx">Editable talk deck</a>
-      </div>
+    <section class="section video" id="video">
+      <div class="section-kicker">Video</div>
+      <h2>Short project explainer</h2>
+      <p>Use this section for the more human, non-bot teaser video. Keep the old script available below for presenters who want to record their own narration.</p>
+      <video controls preload="metadata" poster="assets/video_poster.png">
+        <source src="assets/adaptladder_explainer.mp4" type="video/mp4" />
+        <track kind="captions" src="assets/adaptladder_explainer.vtt" srclang="en" label="English" default />
+        Your browser does not support HTML5 video.
+      </video>
       <details>
-        <summary>Open the short speaker script</summary>
+        <summary>Speaker script summary</summary>
         <div class="script-copy">
           <p><b>Opening question.</b> Do we really need to recalibrate or retrain a brain-to-text decoder every day?</p>
           <p><b>Main answer.</b> The decoder can stay frozen, but the input state for the current day must be chosen carefully.</p>
-          <p><b>Method.</b> Start with the cheapest reliable action: reuse the previous input state, retrieve an older candidate using unlabeled neural geometry, and calibrate the input layer only if stored states appear unreliable.</p>
-          <p><b>Result.</b> Previous-state reuse reaches 12.21% PER at K=20 with no labels, no gradient updates, and no changes to the frozen GRU backbone or phoneme head.</p>
+          <p><b>Method.</b> Reuse previous, retrieve older candidate using unlabeled neural geometry, and calibrate input only if stored states appear unreliable.</p>
           <p><b>Takeaway.</b> Cross-session drift can be framed as input-state management: reuse when memory is reliable, retrieve when geometry warns, and recalibrate only when evidence demands it.</p>
         </div>
       </details>

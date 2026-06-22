@@ -1,0 +1,54 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:08.000
+Do brain-to-text decoders need daily recalibration? We ask whether the decoder can stay frozen while the input state is managed.
+
+2
+00:00:08.000 --> 00:00:16.000
+Daily calibration costs user time, needs labels, and can make long-term BCI use harder.
+
+3
+00:00:16.000 --> 00:00:25.000
+We reframe the question: which historical input state is compatible with today's brain signal?
+
+4
+00:00:25.000 --> 00:00:34.000
+The GRU and output head stay frozen. Only the interface into the decoder - the input state - changes.
+
+5
+00:00:34.000 --> 00:00:44.000
+With the correct native-day input state, T15 reaches 9.06% PER. The wrong input state raises PER to 22-34%.
+
+6
+00:00:44.000 --> 00:00:54.000
+Moment matching is too weak, and small supervised calibration is only partial. Calibration helps, but should not be the first move.
+
+7
+00:00:54.000 --> 00:01:04.000
+The strongest low-cost move is state selection: previous input state reaches 12.21% PER with no labels or training.
+
+8
+00:01:04.000 --> 00:01:15.000
+Neural geometry treats each session as a cloud of neural-feature vectors. Similar cloud shape can reveal compatible past states.
+
+9
+00:01:15.000 --> 00:01:27.000
+DriftGate starts cheap: reuse previous, retrieve by geometry, and calibrate input only when stored states look unreliable.
+
+10
+00:01:27.000 --> 00:01:39.000
+Drift is structured, not random. Nearby days often have similar geometry, but older states can sometimes matter.
+
+11
+00:01:39.000 --> 00:01:51.000
+Geometry proposes candidates; it does not decide alone. A confidence threshold is needed before overriding recency.
+
+12
+00:01:51.000 --> 00:02:03.000
+Operational policy: reuse recent states, inspect stale states with geometry, and calibrate only when evidence demands it.
+
+13
+00:02:03.000 --> 00:02:11.000
+The decoder can stay frozen. What needs to adapt is the input state.
+
